@@ -1,7 +1,7 @@
 ﻿  test_EMT_RAEK_1.0.cpp
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(389,10): warning C4101: buf_mem_int: неиспользованная локальная переменная
   Создание кода
-  0 of 2 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+  Previous IPDB not found, fall back to full compilation.
+  All 197 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   Создание кода завершено
   test_EMT_RAEK_1.0.vcxproj -> D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\Release\test_EMT_RAEK_1.0.exe

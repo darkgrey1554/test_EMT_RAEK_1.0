@@ -87,6 +87,7 @@ int main()
     GetPriorityClass(GetCurrentProcess());
     old_handler = SetUnhandledExceptionFilter(handler_crash);
     SetConsoleCtrlHandler(close_prog, TRUE);
+    HANDLE handle_window = GetConsoleWindow();
     WSADATA wsadata;
     if (WSAStartup(MAKEWORD(2, 2), &wsadata) != 0)
     {
@@ -145,7 +146,7 @@ int main()
 
 	mutex_discrete_in = CreateMutex(NULL, FALSE, muxdisin);
 	mutex_analog_in = CreateMutex(NULL, FALSE, muxanalogin);
-	sharmemory_emt_discrete_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_IN * 4, sharmemorydisout);
+	sharmemory_emt_discrete_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_IN * 4, sharmemorydisin);
 	sharmemory_emt_analog_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_IN * 4, sharmemoryanalogin);
 	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_IN * 4);
 	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_IN * 4);
@@ -164,15 +165,16 @@ int main()
 		}
 	}
 
-	float z = 1.1;
+
 next:
 	Sleep(2000);
 	
-	buf_analog_in[0] = (char)(*((char*)&z));
-	buf_analog_in[1] = (char)(*((char*)&z+1));
-	buf_analog_in[2] = (char)(*((char*)&z+2));
-	buf_analog_in[3] = (char)(*((char*)&z+3));
-	z++;
+   /* for (int i = 0; i < 2; i++)
+    {
+        std::cout << *(int*)(buf_discrete_in+i*4) << std::endl;
+        std::cout << *(float*)(buf_analog_in + i * 4) << std::endl;
+        std::cout << "........." << std::endl;
+    }*/
 	goto next;
 
 	return 0;
@@ -196,14 +198,36 @@ void thread_client(LPVOID config_client)
     int result;
     int last_error;
     int sleep_time;
+    int count_buf = 0;
+    int num_data = atoi(init_client->num_data.c_str());
+    char* buf_read = new char[num_data * 8];
+    int num_data_from_server = 0;
+    DWORD result_wait_mutex = 0;
+    int data_int=0;
+    float data_float=0.;
+    char* buf_cl;
+    char* buf_mem;
+    char set_timeout_sock[4];
+    int  set_timeout_value = 2000;
+
+
+    for (int i = 0; i < num_data * 8; i++) buf_read[i] = 0;
 
     /// --- соединение с сервером --- ///
     sock_client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock_client == INVALID_SOCKET)
     {
-        std::cout << "ERROR_INVALID_SOCKET" << std::endl;
+        std::cout << "ERROR_INVALID_SOCKET ID_CLIENT: "<<init_client->id_device << std::endl;
         std::cout << WSAGetLastError() << std::endl;
     }
+    set_timeout_sock[0] = (char)(*((char*)&set_timeout_value));
+    set_timeout_sock[1] = (char)(*((char*)&set_timeout_value + 1));
+    set_timeout_sock[2] = (char)(*((char*)&set_timeout_value + 2));
+    set_timeout_sock[3] = (char)(*((char*)&set_timeout_value + 3));
+
+    setsockopt(sock_client, SOL_SOCKET, SO_RCVTIMEO, set_timeout_sock, sizeof(DWORD));
+    setsockopt(sock_client, SOL_SOCKET, SO_SNDTIMEO, set_timeout_sock, sizeof(DWORD));
+
 
     adr_server.sin_addr.s_addr = inet_addr(init_client->ip_address.c_str());
     adr_server.sin_port = htons(atoi(init_client->port.c_str()));
@@ -227,8 +251,8 @@ void thread_client(LPVOID config_client)
     buf_request[0] = 2;
 
     ///  --- отправка запроса --- ///
-next:
-wwait:
+    next:
+    wwait:
     Sleep(1);
     QueryPerformanceCounter(&time_river_read);
     time = (time_river_read.QuadPart - time_last_messeng.QuadPart) * 1000.0 / freqency.QuadPart;
@@ -274,26 +298,65 @@ wwait:
             goto repeat_send_read;
         }
     }
-    /*
+    
     count_buf = 0;
     /// --- чтение первых 12-байт (команды)--- ///
-    while (count_buf < 12) count_buf += recv(socket_pull, buf_read + count_buf, 12 - count_buf, NULL);
+    do 
+    {
+        count_buf += recv(sock_client, buf_read + count_buf, 12 - count_buf, NULL);
+    } while (count_buf < 12 && count_buf != SOCKET_ERROR);
 
-    asd = *((int*)buf_read);                                           ///// чтение кол-ва читаемых данных
-    asd = asd * sizeof(double);
+    /// ---  чтение кол-ва читаемых данных --- ///
+    num_data_from_server = *((int*)buf_read);                                           
+    num_data_from_server = num_data_from_server * sizeof(double);
+
     //// ---- читаем данные и пишим их в буфер обмена --- ///
     count_buf = 0;
-    while (count_buf < asd) count_buf += recv(socket_pull, buf_read + count_buf, asd - count_buf, NULL);
-
-    buf_r = buf_read;
-    buf_m = buf_to_client + SIZE_BUFFER * 8 * (idr);
-    for (int i = 0; i < asd; i++)
+    do
     {
-        *buf_m = *buf_r;
-        buf_m++;
-        buf_r++;
+        count_buf += recv(sock_client, buf_read + count_buf, num_data_from_server - count_buf, NULL);
+    } while (count_buf < num_data_from_server && count_buf != SOCKET_ERROR);
+
+    if (init_client->type_data == "discrete")
+    {
+        result_wait_mutex = WaitForSingleObject(mutex_discrete_in, 4);
+        if (result_wait_mutex == WAIT_OBJECT_0)
+        {
+            buf_mem = buf_discrete_in;
+            buf_cl = buf_read;
+            for (int i = 0; i < num_data; i++)
+            {
+                data_int = (int)(*((double*)buf_cl));
+                for (int j = 0; j < 4; j++)
+                {
+                    *buf_mem = *((char*)&data_int + j);
+                    buf_mem++;
+                }
+                buf_cl += 8;
+            }
+        }
+        ReleaseMutex(mutex_discrete_in);
     }
-    */
+    if (init_client->type_data == "analog")
+    {
+        result_wait_mutex = WaitForSingleObject(mutex_analog_in, 4);
+        if (result_wait_mutex == WAIT_OBJECT_0)
+        {
+            buf_mem = buf_analog_in;
+            buf_cl = buf_read;
+            for (int i = 0; i < num_data; i++)
+            {
+                data_float = (float)(*((double*)buf_cl));
+                for (int j = 0; j < 4; j++)
+                {
+                    *buf_mem = *((char*)&data_float + j);
+                    buf_mem++;
+                }
+                buf_cl += 8;
+            }
+        }
+        ReleaseMutex(mutex_analog_in);
+    }
     goto next;
 }
 
@@ -304,9 +367,172 @@ void thread_server(LPVOID config_server)
 {
 	config_device* init_server = (config_device*)config_server;
 	
-    next:
+      
+    SOCKET sock_server;
+    SOCKADDR_IN addr_server;
+    SOCKET connect_client;
+    SOCKADDR_IN addr_client;
+    int size_socket_client = sizeof(addr_client);
+    int  set_timeout_value = 2000;
+    char set_timeout[4];
+    LARGE_INTEGER end_time;
+    LARGE_INTEGER start_time;
+    LARGE_INTEGER freqency;
+    QueryPerformanceFrequency(&freqency);
+    double time;
+    char* buf_read=new char[16];
+    int count_read = 0;
+    int number_read_value = 0;
+    int command=0;
+    int num_data = atoi(init_server->num_data.c_str());
+    char* buf_write = new char[num_data * 8+12];
+    int* buf_mem_int;
+    char* buf_mem;
+    double data_double;
+    char* buf_write_out;
+    int result_wait_mutex;
 
-	Sleep(2000);
+    for (int i = 0; i < num_data * 8 + 12; i++) buf_write[i] = 0;
+    for (int i = 0; i < 4; i++) set_timeout[i] = (char)(*((char*)&set_timeout_value+i));  
+
+    sock_server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock_server == INVALID_SOCKET)
+    {
+        std::cout << "ERROR_INVALID_SOCKET" << std::endl;
+        return;
+    }
+
+    addr_server.sin_addr.s_addr = inet_addr(init_server->ip_address.c_str());
+    addr_server.sin_port = htons(atoi(init_server->port.c_str()));
+    addr_server.sin_family = AF_INET;
+    
+    if (bind(sock_server, (sockaddr*)&addr_server, sizeof(addr_server)) == SOCKET_ERROR)
+    {
+        std::cout << "ERROR_BIND_SOCKET ID_SERVER: "<<init_server->id_device << std::endl;
+        std::cout << WSAGetLastError() << std::endl;
+        return;
+    }
+
+    listen(sock_server, 2);
+
+next_client_simintech:
+
+    connect_client = accept(sock_server, (sockaddr*)&addr_client, &size_socket_client);
+    
+    if (connect_client == INVALID_SOCKET)
+    {
+        std::cout << "ERROR_CONNECT_WITH_CLIENT" << std::endl;
+        closesocket(connect_client);
+        goto next_client_simintech;
+    }
+    else
+    {
+        std::cout << "CONNECT_WITH_CLIENT_IP: "
+            << (int)addr_client.sin_addr.S_un.S_un_b.s_b1 << "."
+            << (int)addr_client.sin_addr.S_un.S_un_b.s_b2 << "."
+            << (int)addr_client.sin_addr.S_un.S_un_b.s_b3 << "."
+            << (int)addr_client.sin_addr.S_un.S_un_b.s_b4
+            << "  PORT: "<< addr_client.sin_port <<std::endl;
+    }
+    setsockopt(connect_client, SOL_SOCKET, SO_RCVTIMEO, set_timeout, sizeof(DWORD));
+    setsockopt(connect_client, SOL_SOCKET, SO_SNDTIMEO, set_timeout, sizeof(DWORD));
+    QueryPerformanceCounter(&start_time);
+    
+    next:
+    QueryPerformanceCounter(&end_time);
+    time = (end_time.QuadPart - start_time.QuadPart) * 1000.0 / freqency.QuadPart;
+    if (time > 100)
+    {
+        std::cout << "LIMIT_TIME_MESSENG_WRITING_EXCEEDED ID - " << init_server->id_device << "\t" << time << get_time_local() << std::endl;
+    }
+
+    count_read = 0;
+    do
+    {
+        count_read += recv(connect_client, buf_read + count_read, 16 - count_read, NULL);
+        if (count_read == 4)
+        {
+            command=*(int*)&buf_read[0];
+            break;
+        }
+    } while (count_read<16 && count_read!=SOCKET_ERROR);
+    
+    //count_read=recv(connect_client, buf_read, 16, NULL);
+    if (count_read == SOCKET_ERROR)
+    {
+        std::cout << "ERROR_READ PORT: " << addr_client.sin_port<<" "<< get_time_local() << std::endl;
+        std::cout << "ERROR - " << WSAGetLastError() << std::endl;
+        //shutdown(connect_client, SD_BOTH);
+        closesocket(connect_client);
+        goto next_client_simintech;
+    }
+
+    QueryPerformanceCounter(&start_time);
+    command = *(int*)&buf_read[0];
+    number_read_value = *(int*)&buf_read[12];
+    if (command == 4 || command == 1)
+    {
+        std::cout << "DISCONNECT_ON_THE_INITIATIVE_CLIENT ID - " << init_server->id_device << get_time_local() << std::endl;
+        //shutdown(connect_client, SD_BOTH);
+        closesocket(connect_client);
+        goto next_client_simintech;
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        buf_write[i] = *((char*)&num_data + i);
+    }
+
+    if (init_server->type_data == "analog")
+    {
+        buf_mem = buf_analog_out;
+        buf_write_out = buf_write + 12;
+        result_wait_mutex = WaitForSingleObject(mutex_analog_out, 4);
+        if (result_wait_mutex == WAIT_OBJECT_0)
+        {
+            for (int i = 0; i < num_data; i++)
+            {
+                data_double = (double)*((float*)buf_mem);
+                for (int j = 0; j < 8; j++)
+                {
+                    *buf_write_out = *((char*)&data_double + j);
+                    buf_write_out++;
+                }
+                buf_mem += 4;
+            }
+            ReleaseMutex(mutex_analog_out);
+        }
+    }
+        
+    if (init_server->type_data == "discrete")
+    {
+        buf_mem = buf_discrete_out;
+        buf_write_out = buf_write + 12;
+        result_wait_mutex = WaitForSingleObject(mutex_discrete_out, 4);
+        if (result_wait_mutex == WAIT_OBJECT_0)
+        {
+            for (int i = 0; i < num_data; i++)
+            {
+                data_double = (double)*((int*)buf_mem);
+                for (int j = 0; j < 8; j++)
+                {
+                    *buf_write_out = *((char*)&data_double + j);
+                    buf_write_out++;
+                }
+                buf_mem += 4;
+            }
+            ReleaseMutex(mutex_analog_out);
+        }
+    }
+
+    if (send(connect_client, buf_write, 12 + num_data * 8, NULL) == SOCKET_ERROR)
+    {
+        std::cout << "ERROR_SEND " << init_server->port<< " " << get_time_local() << std::endl;
+        std::cout << "ERROR - " << WSAGetLastError() << std::endl;
+        //shutdown(connect_client, SD_BOTH);
+        closesocket(connect_client);
+        goto next_client_simintech;
+    }
 	goto next;
 
 }
