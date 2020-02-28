@@ -44,6 +44,7 @@ std::string helpstr;
 int cc = 0;
 void KEEP_A_DIARY();
 
+SOCKET *mass_sock[4];
 
 
 /// --- конфигурация --- ///
@@ -169,7 +170,7 @@ int main()
 next:
 	Sleep(2000);
 	
-   /* for (int i = 0; i < 2; i++)
+    /*for (int i = 0; i < 2; i++)
     {
         std::cout << *(int*)(buf_discrete_in+i*4) << std::endl;
         std::cout << *(float*)(buf_analog_in + i * 4) << std::endl;
@@ -185,9 +186,11 @@ next:
 
 void thread_client(LPVOID config_client)
 {
-	config_device* init_client = (config_device*)config_client;
+	
+    config_device* init_client = (config_device*)config_client;
     SOCKET sock_client;
     SOCKADDR_IN adr_server;
+    mass_sock[init_client->id_device] = &sock_client;
     char* buf_request = new char[16];
     LARGE_INTEGER time_last_messeng;
     LARGE_INTEGER time_river_read;
@@ -372,6 +375,7 @@ void thread_server(LPVOID config_server)
     SOCKADDR_IN addr_server;
     SOCKET connect_client;
     SOCKADDR_IN addr_client;
+    mass_sock[init_server->id_device] = &connect_client;
     int size_socket_client = sizeof(addr_client);
     int  set_timeout_value = 2000;
     char set_timeout[4];
@@ -450,10 +454,10 @@ next_client_simintech:
     do
     {
         count_read += recv(connect_client, buf_read + count_read, 16 - count_read, NULL);
-        if (count_read == 4)
+        if (count_read == 4 || count_read == 8)
         {
             command=*(int*)&buf_read[0];
-            break;
+            if (command == 4 || command == 1) break;
         }
     } while (count_read<16 && count_read!=SOCKET_ERROR);
     
@@ -470,6 +474,7 @@ next_client_simintech:
     QueryPerformanceCounter(&start_time);
     command = *(int*)&buf_read[0];
     number_read_value = *(int*)&buf_read[12];
+
     if (command == 4 || command == 1)
     {
         std::cout << "DISCONNECT_ON_THE_INITIATIVE_CLIENT ID - " << init_server->id_device << get_time_local() << std::endl;
@@ -623,6 +628,8 @@ LONG WINAPI handler_crash(PEXCEPTION_POINTERS pExceptionInfo)
 
 BOOL WINAPI close_prog(DWORD fdwCtrlType)
 {
+    for (int i = 0; i < 4; i++) closesocket(*mass_sock[i]);
+    
     write_to_log_file();
     form_string("WTF  O_O", 1);
     form_string("CLOSE_PROGRAMM");
