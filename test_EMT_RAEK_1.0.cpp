@@ -1,4 +1,4 @@
-#include <iostream>
+п»ї#include <iostream>
 #include <winsock2.h>
 #pragma comment(lib,"ws2_32.lib")
 #pragma warning(disable:4996)
@@ -8,7 +8,7 @@
 #include <list>
 
 
-/// --- кол-во данных в общей памяти --- ///
+/// --- ГЄГ®Г«-ГўГ® Г¤Г Г­Г­Г»Гµ Гў Г®ГЎГ№ГҐГ© ГЇГ Г¬ГїГІГЁ --- ///
 #define EMT_DISCRETE_IN 100
 #define EMT_DISCRETE_OUT 100
 #define EMT_ANALOG_IN 100
@@ -21,7 +21,7 @@
 
 
 
-/// ---  общая память --- ///
+/// ---  Г®ГЎГ№Г Гї ГЇГ Г¬ГїГІГј --- ///
 HANDLE sharmemory_emt_discrete_in;
 HANDLE sharmemory_emt_analog_in;
 HANDLE sharmemory_emt_discrete_out;
@@ -35,7 +35,7 @@ char* buf_analog_out;
 char* buf_discrete_in;
 char* buf_analog_in;
 
-/// --- ведение лог-файлв --- ///
+/// --- ГўГҐГ¤ГҐГ­ГЁГҐ Г«Г®ГЈ-ГґГ Г©Г«Гў --- ///
 std::string messeng_file[MESSENG_BUFFER + 5];
 FILE* log_file = NULL;
 int count_messeng = 0;
@@ -44,10 +44,10 @@ std::string helpstr;
 int cc = 0;
 void KEEP_A_DIARY();
 
-SOCKET *mass_sock[4];
+SOCKET* mass_sock[4];
 
 
-/// --- конфигурация --- ///
+/// --- ГЄГ®Г­ГґГЁГЈГіГ°Г Г¶ГЁГї --- ///
 FILE* config_file;
 std::list <std::string> config_info;
 std::string str_info;
@@ -56,27 +56,27 @@ char simvol;
 int num_adapters;
 struct config_device
 {
-	std::string type_device;
-	int id_device = -1;
-	std::string ip_address;
-	std::string port;
-	std::string type_data;
-	std::string num_data;
+    std::string type_device;
+    int id_device = -1;
+    std::string ip_address;
+    std::string port;
+    std::string type_data;
+    std::string num_data;
 };
 config_device* adapters;
 int count_adapt = 0;
 
-/// --- вспомогательные функии --- ///
+/// --- ГўГ±ГЇГ®Г¬Г®ГЈГ ГІГҐГ«ГјГ­Г»ГҐ ГґГіГ­ГЄГЁГЁ --- ///
 
 std::string get_time_local();
-void write_to_log_file(); // записть в лог файл;
+void write_to_log_file(); // Г§Г ГЇГЁГ±ГІГј Гў Г«Г®ГЈ ГґГ Г©Г«;
 void form_string(const char* str, int f_time = 0, unsigned long value = 0);
 
-/// --- потоки SERVER CLIENT --- ///
+/// --- ГЇГ®ГІГ®ГЄГЁ SERVER CLIENT --- ///
 void thread_client(LPVOID config_client);
 void thread_server(LPVOID config_server);
 
-/// --- обработчик аварийного закрытия программы ---///
+/// --- Г®ГЎГ°Г ГЎГ®ГІГ·ГЁГЄ Г ГўГ Г°ГЁГ©Г­Г®ГЈГ® Г§Г ГЄГ°Г»ГІГЁГї ГЇГ°Г®ГЈГ°Г Г¬Г¬Г» ---///
 LPTOP_LEVEL_EXCEPTION_FILTER old_handler = 0;
 LONG WINAPI handler_crash(PEXCEPTION_POINTERS pExceptionInfo);
 BOOL WINAPI close_prog(DWORD fdwCtrlType);
@@ -96,89 +96,89 @@ int main()
         return 0;
     }
 
-	/// --- считывание инф с конфиг файла --- ///
+    /// --- Г±Г·ГЁГІГ»ГўГ Г­ГЁГҐ ГЁГ­Гґ Г± ГЄГ®Г­ГґГЁГЈ ГґГ Г©Г«Г  --- ///
 
-	config_file = fopen("config.txt", "r");
-	while (res_read != EOF)
-	{
-		res_read = fscanf(config_file, "%c", &simvol);
-		if (simvol > 0x20 && res_read != EOF) str_info += simvol;
-		if (simvol == '\n' && str_info.length()!=0)
-		{
-			config_info.push_back(str_info);
-			str_info.clear();
-		}
-	}
-	if (str_info.length()!=0) config_info.push_back(str_info);
+    config_file = fopen("config.txt", "r");
+    while (res_read != EOF)
+    {
+        res_read = fscanf(config_file, "%c", &simvol);
+        if (simvol > 0x20 && res_read != EOF) str_info += simvol;
+        if (simvol == '\n' && str_info.length() != 0)
+        {
+            config_info.push_back(str_info);
+            str_info.clear();
+        }
+    }
+    if (str_info.length() != 0) config_info.push_back(str_info);
 
-	num_adapters = config_info.size() / 5;
-	adapters = new config_device[num_adapters];
+    num_adapters = config_info.size() / 5;
+    adapters = new config_device[num_adapters];
 
-	for (auto iter = config_info.begin(); iter != config_info.end();)
-	{
-		adapters[count_adapt].type_device = *(iter++);
-		adapters[count_adapt].ip_address = *(iter++);
-		adapters[count_adapt].port = *(iter++);
-		adapters[count_adapt].type_data = *(iter++);
-		adapters[count_adapt].num_data = *(iter++);
-		adapters[count_adapt].id_device = count_adapt;
-		count_adapt++;
-	}
-	
+    for (auto iter = config_info.begin(); iter != config_info.end();)
+    {
+        adapters[count_adapt].type_device = *(iter++);
+        adapters[count_adapt].ip_address = *(iter++);
+        adapters[count_adapt].port = *(iter++);
+        adapters[count_adapt].type_data = *(iter++);
+        adapters[count_adapt].num_data = *(iter++);
+        adapters[count_adapt].id_device = count_adapt;
+        count_adapt++;
+    }
 
-	/// --- инициализация общей памяти --- /// 
 
-	TCHAR muxdisout[] = TEXT("mutex_discrete_out");
-	TCHAR muxdisin[] = TEXT("mutex_discrete_in");
-	TCHAR muxanalogout[] = TEXT("mutex_analog_out");
-	TCHAR muxanalogin[] = TEXT("mutex_analog_in");
+    /// --- ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶ГЁГї Г®ГЎГ№ГҐГ© ГЇГ Г¬ГїГІГЁ --- /// 
 
-	TCHAR sharmemorydisout[] = TEXT("sharmemory_emt_discrete_out");
-	TCHAR sharmemorydisin[] = TEXT("sharmemory_emt_discrete_in");
-	TCHAR sharmemoryanalogout[] = TEXT("sharmemory_emt_analog_out");
-	TCHAR sharmemoryanalogin[] = TEXT("sharmemory_emt_analog_in");
+    TCHAR muxdisout[] = TEXT("mutex_discrete_out");
+    TCHAR muxdisin[] = TEXT("mutex_discrete_in");
+    TCHAR muxanalogout[] = TEXT("mutex_analog_out");
+    TCHAR muxanalogin[] = TEXT("mutex_analog_in");
 
-	mutex_discrete_out = CreateMutex(NULL, FALSE, muxdisout);
-	mutex_analog_out = CreateMutex(NULL, FALSE, muxanalogout);
-	sharmemory_emt_discrete_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_OUT * 4, sharmemorydisout);
-	sharmemory_emt_analog_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_OUT * 4, sharmemoryanalogout);
-	buf_discrete_out = (char*)MapViewOfFile(sharmemory_emt_discrete_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_OUT * 4);
-	buf_analog_out = (char*)MapViewOfFile(sharmemory_emt_analog_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_OUT * 4);
+    TCHAR sharmemorydisout[] = TEXT("sharmemory_emt_discrete_out");
+    TCHAR sharmemorydisin[] = TEXT("sharmemory_emt_discrete_in");
+    TCHAR sharmemoryanalogout[] = TEXT("sharmemory_emt_analog_out");
+    TCHAR sharmemoryanalogin[] = TEXT("sharmemory_emt_analog_in");
 
-	mutex_discrete_in = CreateMutex(NULL, FALSE, muxdisin);
-	mutex_analog_in = CreateMutex(NULL, FALSE, muxanalogin);
-	sharmemory_emt_discrete_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_IN * 4, sharmemorydisin);
-	sharmemory_emt_analog_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_IN * 4, sharmemoryanalogin);
-	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_IN * 4);
-	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_IN * 4);
+    mutex_discrete_out = CreateMutex(NULL, FALSE, muxdisout);
+    mutex_analog_out = CreateMutex(NULL, FALSE, muxanalogout);
+    sharmemory_emt_discrete_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_OUT * 4, sharmemorydisout);
+    sharmemory_emt_analog_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_OUT * 4, sharmemoryanalogout);
+    buf_discrete_out = (char*)MapViewOfFile(sharmemory_emt_discrete_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_OUT * 4);
+    buf_analog_out = (char*)MapViewOfFile(sharmemory_emt_analog_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_OUT * 4);
 
-	/// --- инициализацая потоков SERVER CLIENT --- ///
+    mutex_discrete_in = CreateMutex(NULL, FALSE, muxdisin);
+    mutex_analog_in = CreateMutex(NULL, FALSE, muxanalogin);
+    sharmemory_emt_discrete_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_IN * 4, sharmemorydisin);
+    sharmemory_emt_analog_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_IN * 4, sharmemoryanalogin);
+    buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_IN * 4);
+    buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_IN * 4);
 
-	for (int i = 0; i < num_adapters; i++)
-	{
-		if (adapters[i].type_device == "CLIENT")
-		{
-			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_client,&adapters[i], NULL, NULL);
-		}
-		if (adapters[i].type_device == "SERVER")
-		{
-			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_server,&adapters[i], NULL, NULL);
-		}
-	}
+    /// --- ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶Г Гї ГЇГ®ГІГ®ГЄГ®Гў SERVER CLIENT --- ///
+
+    for (int i = 0; i < num_adapters; i++)
+    {
+        if (adapters[i].type_device == "CLIENT")
+        {
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_client, &adapters[i], NULL, NULL);
+        }
+        if (adapters[i].type_device == "SERVER")
+        {
+            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_server, &adapters[i], NULL, NULL);
+        }
+    }
 
 
 next:
-	Sleep(2000);
-	
+    Sleep(2000);
+
     /*for (int i = 0; i < 2; i++)
     {
         std::cout << *(int*)(buf_discrete_in+i*4) << std::endl;
         std::cout << *(float*)(buf_analog_in + i * 4) << std::endl;
         std::cout << "........." << std::endl;
     }*/
-	goto next;
+    goto next;
 
-	return 0;
+    return 0;
 }
 
 
@@ -186,7 +186,7 @@ next:
 
 void thread_client(LPVOID config_client)
 {
-	
+
     config_device* init_client = (config_device*)config_client;
     SOCKET sock_client;
     SOCKADDR_IN adr_server;
@@ -206,8 +206,8 @@ void thread_client(LPVOID config_client)
     char* buf_read = new char[num_data * 8];
     int num_data_from_server = 0;
     DWORD result_wait_mutex = 0;
-    int data_int=0;
-    float data_float=0.;
+    int data_int = 0;
+    float data_float = 0.;
     char* buf_cl;
     char* buf_mem;
     char set_timeout_sock[4];
@@ -216,11 +216,11 @@ void thread_client(LPVOID config_client)
 
     for (int i = 0; i < num_data * 8; i++) buf_read[i] = 0;
 
-    /// --- соединение с сервером --- ///
+    /// --- Г±Г®ГҐГ¤ГЁГ­ГҐГ­ГЁГҐ Г± Г±ГҐГ°ГўГҐГ°Г®Г¬ --- ///
     sock_client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock_client == INVALID_SOCKET)
     {
-        std::cout << "ERROR_INVALID_SOCKET ID_CLIENT: "<<init_client->id_device << std::endl;
+        std::cout << "ERROR_INVALID_SOCKET ID_CLIENT: " << init_client->id_device << std::endl;
         std::cout << WSAGetLastError() << std::endl;
     }
     set_timeout_sock[0] = (char)(*((char*)&set_timeout_value));
@@ -236,7 +236,7 @@ void thread_client(LPVOID config_client)
     adr_server.sin_port = htons(atoi(init_client->port.c_str()));
     adr_server.sin_family = AF_INET;
 
-    connect_server:
+connect_server:
     if (connect(sock_client, (sockaddr*)&adr_server, sizeof(adr_server)) == SOCKET_ERROR)
     {
         std::cout << "ERROR_CONNECT_WITH_SERVER: PORT " << ntohs(adr_server.sin_port) << std::endl;
@@ -249,13 +249,13 @@ void thread_client(LPVOID config_client)
         std::cout << "CONNECT_WITH_SERVER_DONE: PORT " << ntohs(adr_server.sin_port) << std::endl;
     }
 
-    /// --- формирование запроса --- ///
+    /// --- ГґГ®Г°Г¬ГЁГ°Г®ГўГ Г­ГЁГҐ Г§Г ГЇГ°Г®Г±Г  --- ///
     memset(buf_request, 0, 16);
     buf_request[0] = 2;
 
-    ///  --- отправка запроса --- ///
-    next:
-    wwait:
+    ///  --- Г®ГІГЇГ°Г ГўГЄГ  Г§Г ГЇГ°Г®Г±Г  --- ///
+next:
+wwait:
     Sleep(1);
     QueryPerformanceCounter(&time_river_read);
     time = (time_river_read.QuadPart - time_last_messeng.QuadPart) * 1000.0 / freqency.QuadPart;
@@ -264,9 +264,9 @@ void thread_client(LPVOID config_client)
     {
         std::cout << "LIMIT_TIME_MESSENG_READING_EXCEEDED ID - " << init_client->id_device << " " << time << get_time_local() << std::endl;
     }
-       
-    /// --- отправка запроса на чтение --- ///
-    repeat_send_read:
+
+    /// --- Г®ГІГЇГ°Г ГўГЄГ  Г§Г ГЇГ°Г®Г±Г  Г­Г  Г·ГІГҐГ­ГЁГҐ --- ///
+repeat_send_read:
     QueryPerformanceCounter(&time_last_messeng);
     result = send(sock_client, buf_request, 16, NULL);
     if (result == SOCKET_ERROR)
@@ -279,7 +279,7 @@ void thread_client(LPVOID config_client)
             || last_error == 10060 || last_error == 10061 || last_error == 10064 || last_error == 10065
             || last_error == 10108 || last_error == 10111 || last_error == 11001)
         {
-        sleep_time = 2000;
+            sleep_time = 2000;
 
         reconnect:
             std::cout << "RECONNECT..." << std::endl;
@@ -301,19 +301,19 @@ void thread_client(LPVOID config_client)
             goto repeat_send_read;
         }
     }
-    
+
     count_buf = 0;
-    /// --- чтение первых 12-байт (команды)--- ///
-    do 
+    /// --- Г·ГІГҐГ­ГЁГҐ ГЇГҐГ°ГўГ»Гµ 12-ГЎГ Г©ГІ (ГЄГ®Г¬Г Г­Г¤Г»)--- ///
+    do
     {
         count_buf += recv(sock_client, buf_read + count_buf, 12 - count_buf, NULL);
     } while (count_buf < 12 && count_buf != SOCKET_ERROR);
 
-    /// ---  чтение кол-ва читаемых данных --- ///
-    num_data_from_server = *((int*)buf_read);                                           
+    /// ---  Г·ГІГҐГ­ГЁГҐ ГЄГ®Г«-ГўГ  Г·ГЁГІГ ГҐГ¬Г»Гµ Г¤Г Г­Г­Г»Гµ --- ///
+    num_data_from_server = *((int*)buf_read);
     num_data_from_server = num_data_from_server * sizeof(double);
 
-    //// ---- читаем данные и пишим их в буфер обмена --- ///
+    //// ---- Г·ГЁГІГ ГҐГ¬ Г¤Г Г­Г­Г»ГҐ ГЁ ГЇГЁГёГЁГ¬ ГЁГµ Гў ГЎГіГґГҐГ° Г®ГЎГ¬ГҐГ­Г  --- ///
     count_buf = 0;
     do
     {
@@ -368,9 +368,9 @@ void thread_client(LPVOID config_client)
 
 void thread_server(LPVOID config_server)
 {
-	config_device* init_server = (config_device*)config_server;
-	
-      
+    config_device* init_server = (config_device*)config_server;
+
+
     SOCKET sock_server;
     SOCKADDR_IN addr_server;
     SOCKET connect_client;
@@ -384,12 +384,12 @@ void thread_server(LPVOID config_server)
     LARGE_INTEGER freqency;
     QueryPerformanceFrequency(&freqency);
     double time;
-    char* buf_read=new char[16];
+    char* buf_read = new char[16];
     int count_read = 0;
     int number_read_value = 0;
-    int command=0;
+    int command = 0;
     int num_data = atoi(init_server->num_data.c_str());
-    char* buf_write = new char[num_data * 8+12];
+    char* buf_write = new char[num_data * 8 + 12];
     int* buf_mem_int;
     char* buf_mem;
     double data_double;
@@ -397,7 +397,7 @@ void thread_server(LPVOID config_server)
     int result_wait_mutex;
 
     for (int i = 0; i < num_data * 8 + 12; i++) buf_write[i] = 0;
-    for (int i = 0; i < 4; i++) set_timeout[i] = (char)(*((char*)&set_timeout_value+i));  
+    for (int i = 0; i < 4; i++) set_timeout[i] = (char)(*((char*)&set_timeout_value + i));
 
     sock_server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock_server == INVALID_SOCKET)
@@ -409,10 +409,10 @@ void thread_server(LPVOID config_server)
     addr_server.sin_addr.s_addr = inet_addr(init_server->ip_address.c_str());
     addr_server.sin_port = htons(atoi(init_server->port.c_str()));
     addr_server.sin_family = AF_INET;
-    
+
     if (bind(sock_server, (sockaddr*)&addr_server, sizeof(addr_server)) == SOCKET_ERROR)
     {
-        std::cout << "ERROR_BIND_SOCKET ID_SERVER: "<<init_server->id_device << std::endl;
+        std::cout << "ERROR_BIND_SOCKET ID_SERVER: " << init_server->id_device << std::endl;
         std::cout << WSAGetLastError() << std::endl;
         return;
     }
@@ -422,7 +422,7 @@ void thread_server(LPVOID config_server)
 next_client_simintech:
 
     connect_client = accept(sock_server, (sockaddr*)&addr_client, &size_socket_client);
-    
+
     if (connect_client == INVALID_SOCKET)
     {
         std::cout << "ERROR_CONNECT_WITH_CLIENT" << std::endl;
@@ -436,13 +436,13 @@ next_client_simintech:
             << (int)addr_client.sin_addr.S_un.S_un_b.s_b2 << "."
             << (int)addr_client.sin_addr.S_un.S_un_b.s_b3 << "."
             << (int)addr_client.sin_addr.S_un.S_un_b.s_b4
-            << "  PORT: "<< addr_client.sin_port <<std::endl;
+            << "  PORT: " << addr_client.sin_port << std::endl;
     }
     setsockopt(connect_client, SOL_SOCKET, SO_RCVTIMEO, set_timeout, sizeof(DWORD));
     setsockopt(connect_client, SOL_SOCKET, SO_SNDTIMEO, set_timeout, sizeof(DWORD));
     QueryPerformanceCounter(&start_time);
-    
-    next:
+
+next:
     QueryPerformanceCounter(&end_time);
     time = (end_time.QuadPart - start_time.QuadPart) * 1000.0 / freqency.QuadPart;
     if (time > 100)
@@ -456,15 +456,15 @@ next_client_simintech:
         count_read += recv(connect_client, buf_read + count_read, 16 - count_read, NULL);
         if (count_read == 4 || count_read == 8)
         {
-            command=*(int*)&buf_read[0];
+            command = *(int*)&buf_read[0];
             if (command == 4 || command == 1) break;
         }
-    } while (count_read<16 && count_read!=SOCKET_ERROR);
-    
+    } while (count_read < 16 && count_read != SOCKET_ERROR);
+
     //count_read=recv(connect_client, buf_read, 16, NULL);
     if (count_read == SOCKET_ERROR)
     {
-        std::cout << "ERROR_READ PORT: " << addr_client.sin_port<<" "<< get_time_local() << std::endl;
+        std::cout << "ERROR_READ PORT: " << addr_client.sin_port << " " << get_time_local() << std::endl;
         std::cout << "ERROR - " << WSAGetLastError() << std::endl;
         //shutdown(connect_client, SD_BOTH);
         closesocket(connect_client);
@@ -508,7 +508,7 @@ next_client_simintech:
             ReleaseMutex(mutex_analog_out);
         }
     }
-        
+
     if (init_server->type_data == "discrete")
     {
         buf_mem = buf_discrete_out;
@@ -526,19 +526,19 @@ next_client_simintech:
                 }
                 buf_mem += 4;
             }
-            ReleaseMutex(mutex_analog_out);
+            ReleaseMutex(mutex_discrete_out);
         }
     }
 
     if (send(connect_client, buf_write, 12 + num_data * 8, NULL) == SOCKET_ERROR)
     {
-        std::cout << "ERROR_SEND " << init_server->port<< " " << get_time_local() << std::endl;
+        std::cout << "ERROR_SEND " << init_server->port << " " << get_time_local() << std::endl;
         std::cout << "ERROR - " << WSAGetLastError() << std::endl;
         //shutdown(connect_client, SD_BOTH);
         closesocket(connect_client);
         goto next_client_simintech;
     }
-	goto next;
+    goto next;
 
 }
 
@@ -629,7 +629,7 @@ LONG WINAPI handler_crash(PEXCEPTION_POINTERS pExceptionInfo)
 BOOL WINAPI close_prog(DWORD fdwCtrlType)
 {
     for (int i = 0; i < 4; i++) closesocket(*mass_sock[i]);
-    
+
     write_to_log_file();
     form_string("WTF  O_O", 1);
     form_string("CLOSE_PROGRAMM");
