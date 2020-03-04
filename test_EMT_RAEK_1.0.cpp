@@ -1,4 +1,4 @@
-п»ї#include <iostream>
+#include <iostream>
 #include <winsock2.h>
 #pragma comment(lib,"ws2_32.lib")
 #pragma warning(disable:4996)
@@ -8,7 +8,7 @@
 #include <list>
 
 
-/// --- ГЄГ®Г«-ГўГ® Г¤Г Г­Г­Г»Гµ Гў Г®ГЎГ№ГҐГ© ГЇГ Г¬ГїГІГЁ --- ///
+/// --- кол-во данных в общей памяти --- ///
 #define EMT_DISCRETE_IN 100
 #define EMT_DISCRETE_OUT 100
 #define EMT_ANALOG_IN 100
@@ -21,7 +21,7 @@
 
 
 
-/// ---  Г®ГЎГ№Г Гї ГЇГ Г¬ГїГІГј --- ///
+/// ---  общая память --- ///
 HANDLE sharmemory_emt_discrete_in;
 HANDLE sharmemory_emt_analog_in;
 HANDLE sharmemory_emt_discrete_out;
@@ -35,7 +35,7 @@ char* buf_analog_out;
 char* buf_discrete_in;
 char* buf_analog_in;
 
-/// --- ГўГҐГ¤ГҐГ­ГЁГҐ Г«Г®ГЈ-ГґГ Г©Г«Гў --- ///
+/// --- ведение лог-файлв --- ///
 std::string messeng_file[MESSENG_BUFFER + 5];
 FILE* log_file = NULL;
 int count_messeng = 0;
@@ -44,10 +44,10 @@ std::string helpstr;
 int cc = 0;
 void KEEP_A_DIARY();
 
-SOCKET* mass_sock[4];
+SOCKET *mass_sock[4];
 
 
-/// --- ГЄГ®Г­ГґГЁГЈГіГ°Г Г¶ГЁГї --- ///
+/// --- конфигурация --- ///
 FILE* config_file;
 std::list <std::string> config_info;
 std::string str_info;
@@ -56,27 +56,27 @@ char simvol;
 int num_adapters;
 struct config_device
 {
-    std::string type_device;
-    int id_device = -1;
-    std::string ip_address;
-    std::string port;
-    std::string type_data;
-    std::string num_data;
+	std::string type_device;
+	int id_device = -1;
+	std::string ip_address;
+	std::string port;
+	std::string type_data;
+	std::string num_data;
 };
 config_device* adapters;
 int count_adapt = 0;
 
-/// --- ГўГ±ГЇГ®Г¬Г®ГЈГ ГІГҐГ«ГјГ­Г»ГҐ ГґГіГ­ГЄГЁГЁ --- ///
+/// --- вспомогательные функии --- ///
 
 std::string get_time_local();
-void write_to_log_file(); // Г§Г ГЇГЁГ±ГІГј Гў Г«Г®ГЈ ГґГ Г©Г«;
+void write_to_log_file(); // записть в лог файл;
 void form_string(const char* str, int f_time = 0, unsigned long value = 0);
 
-/// --- ГЇГ®ГІГ®ГЄГЁ SERVER CLIENT --- ///
+/// --- потоки SERVER CLIENT --- ///
 void thread_client(LPVOID config_client);
 void thread_server(LPVOID config_server);
 
-/// --- Г®ГЎГ°Г ГЎГ®ГІГ·ГЁГЄ Г ГўГ Г°ГЁГ©Г­Г®ГЈГ® Г§Г ГЄГ°Г»ГІГЁГї ГЇГ°Г®ГЈГ°Г Г¬Г¬Г» ---///
+/// --- обработчик аварийного закрытия программы ---///
 LPTOP_LEVEL_EXCEPTION_FILTER old_handler = 0;
 LONG WINAPI handler_crash(PEXCEPTION_POINTERS pExceptionInfo);
 BOOL WINAPI close_prog(DWORD fdwCtrlType);
@@ -96,89 +96,89 @@ int main()
         return 0;
     }
 
-    /// --- Г±Г·ГЁГІГ»ГўГ Г­ГЁГҐ ГЁГ­Гґ Г± ГЄГ®Г­ГґГЁГЈ ГґГ Г©Г«Г  --- ///
+	/// --- считывание инф с конфиг файла --- ///
 
-    config_file = fopen("config.txt", "r");
-    while (res_read != EOF)
-    {
-        res_read = fscanf(config_file, "%c", &simvol);
-        if (simvol > 0x20 && res_read != EOF) str_info += simvol;
-        if (simvol == '\n' && str_info.length() != 0)
-        {
-            config_info.push_back(str_info);
-            str_info.clear();
-        }
-    }
-    if (str_info.length() != 0) config_info.push_back(str_info);
+	config_file = fopen("config.txt", "r");
+	while (res_read != EOF)
+	{
+		res_read = fscanf(config_file, "%c", &simvol);
+		if (simvol > 0x20 && res_read != EOF) str_info += simvol;
+		if (simvol == '\n' && str_info.length()!=0)
+		{
+			config_info.push_back(str_info);
+			str_info.clear();
+		}
+	}
+	if (str_info.length()!=0) config_info.push_back(str_info);
 
-    num_adapters = config_info.size() / 5;
-    adapters = new config_device[num_adapters];
+	num_adapters = config_info.size() / 5;
+	adapters = new config_device[num_adapters];
 
-    for (auto iter = config_info.begin(); iter != config_info.end();)
-    {
-        adapters[count_adapt].type_device = *(iter++);
-        adapters[count_adapt].ip_address = *(iter++);
-        adapters[count_adapt].port = *(iter++);
-        adapters[count_adapt].type_data = *(iter++);
-        adapters[count_adapt].num_data = *(iter++);
-        adapters[count_adapt].id_device = count_adapt;
-        count_adapt++;
-    }
+	for (auto iter = config_info.begin(); iter != config_info.end();)
+	{
+		adapters[count_adapt].type_device = *(iter++);
+		adapters[count_adapt].ip_address = *(iter++);
+		adapters[count_adapt].port = *(iter++);
+		adapters[count_adapt].type_data = *(iter++);
+		adapters[count_adapt].num_data = *(iter++);
+		adapters[count_adapt].id_device = count_adapt;
+		count_adapt++;
+	}
+	
 
+	/// --- инициализация общей памяти --- /// 
 
-    /// --- ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶ГЁГї Г®ГЎГ№ГҐГ© ГЇГ Г¬ГїГІГЁ --- /// 
+	TCHAR muxdisout[] = TEXT("mutex_discrete_out");
+	TCHAR muxdisin[] = TEXT("mutex_discrete_in");
+	TCHAR muxanalogout[] = TEXT("mutex_analog_out");
+	TCHAR muxanalogin[] = TEXT("mutex_analog_in");
 
-    TCHAR muxdisout[] = TEXT("mutex_discrete_out");
-    TCHAR muxdisin[] = TEXT("mutex_discrete_in");
-    TCHAR muxanalogout[] = TEXT("mutex_analog_out");
-    TCHAR muxanalogin[] = TEXT("mutex_analog_in");
+	TCHAR sharmemorydisout[] = TEXT("sharmemory_emt_discrete_out");
+	TCHAR sharmemorydisin[] = TEXT("sharmemory_emt_discrete_in");
+	TCHAR sharmemoryanalogout[] = TEXT("sharmemory_emt_analog_out");
+	TCHAR sharmemoryanalogin[] = TEXT("sharmemory_emt_analog_in");
 
-    TCHAR sharmemorydisout[] = TEXT("sharmemory_emt_discrete_out");
-    TCHAR sharmemorydisin[] = TEXT("sharmemory_emt_discrete_in");
-    TCHAR sharmemoryanalogout[] = TEXT("sharmemory_emt_analog_out");
-    TCHAR sharmemoryanalogin[] = TEXT("sharmemory_emt_analog_in");
+	mutex_discrete_out = CreateMutex(NULL, FALSE, muxdisout);
+	mutex_analog_out = CreateMutex(NULL, FALSE, muxanalogout);
+	sharmemory_emt_discrete_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_OUT * 4, sharmemorydisout);
+	sharmemory_emt_analog_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_OUT * 4, sharmemoryanalogout);
+	buf_discrete_out = (char*)MapViewOfFile(sharmemory_emt_discrete_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_OUT * 4);
+	buf_analog_out = (char*)MapViewOfFile(sharmemory_emt_analog_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_OUT * 4);
 
-    mutex_discrete_out = CreateMutex(NULL, FALSE, muxdisout);
-    mutex_analog_out = CreateMutex(NULL, FALSE, muxanalogout);
-    sharmemory_emt_discrete_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_OUT * 4, sharmemorydisout);
-    sharmemory_emt_analog_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_OUT * 4, sharmemoryanalogout);
-    buf_discrete_out = (char*)MapViewOfFile(sharmemory_emt_discrete_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_OUT * 4);
-    buf_analog_out = (char*)MapViewOfFile(sharmemory_emt_analog_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_OUT * 4);
+	mutex_discrete_in = CreateMutex(NULL, FALSE, muxdisin);
+	mutex_analog_in = CreateMutex(NULL, FALSE, muxanalogin);
+	sharmemory_emt_discrete_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_IN * 4, sharmemorydisin);
+	sharmemory_emt_analog_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_IN * 4, sharmemoryanalogin);
+	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_IN * 4);
+	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_IN * 4);
 
-    mutex_discrete_in = CreateMutex(NULL, FALSE, muxdisin);
-    mutex_analog_in = CreateMutex(NULL, FALSE, muxanalogin);
-    sharmemory_emt_discrete_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_IN * 4, sharmemorydisin);
-    sharmemory_emt_analog_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_IN * 4, sharmemoryanalogin);
-    buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_IN * 4);
-    buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_IN * 4);
+	/// --- инициализацая потоков SERVER CLIENT --- ///
 
-    /// --- ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶Г Гї ГЇГ®ГІГ®ГЄГ®Гў SERVER CLIENT --- ///
-
-    for (int i = 0; i < num_adapters; i++)
-    {
-        if (adapters[i].type_device == "CLIENT")
-        {
-            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_client, &adapters[i], NULL, NULL);
-        }
-        if (adapters[i].type_device == "SERVER")
-        {
-            CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_server, &adapters[i], NULL, NULL);
-        }
-    }
+	for (int i = 0; i < num_adapters; i++)
+	{
+		if (adapters[i].type_device == "CLIENT")
+		{
+			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_client,&adapters[i], NULL, NULL);
+		}
+		if (adapters[i].type_device == "SERVER")
+		{
+			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_server,&adapters[i], NULL, NULL);
+		}
+	}
 
 
 next:
-    Sleep(2000);
-
+	Sleep(2000);
+	
     /*for (int i = 0; i < 2; i++)
     {
         std::cout << *(int*)(buf_discrete_in+i*4) << std::endl;
         std::cout << *(float*)(buf_analog_in + i * 4) << std::endl;
         std::cout << "........." << std::endl;
     }*/
-    goto next;
+	goto next;
 
-    return 0;
+	return 0;
 }
 
 
@@ -186,7 +186,7 @@ next:
 
 void thread_client(LPVOID config_client)
 {
-
+	
     config_device* init_client = (config_device*)config_client;
     SOCKET sock_client;
     SOCKADDR_IN adr_server;
@@ -206,8 +206,8 @@ void thread_client(LPVOID config_client)
     char* buf_read = new char[num_data * 8];
     int num_data_from_server = 0;
     DWORD result_wait_mutex = 0;
-    int data_int = 0;
-    float data_float = 0.;
+    int data_int=0;
+    float data_float=0.;
     char* buf_cl;
     char* buf_mem;
     char set_timeout_sock[4];
@@ -216,11 +216,11 @@ void thread_client(LPVOID config_client)
 
     for (int i = 0; i < num_data * 8; i++) buf_read[i] = 0;
 
-    /// --- Г±Г®ГҐГ¤ГЁГ­ГҐГ­ГЁГҐ Г± Г±ГҐГ°ГўГҐГ°Г®Г¬ --- ///
+    /// --- соединение с сервером --- ///
     sock_client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock_client == INVALID_SOCKET)
     {
-        std::cout << "ERROR_INVALID_SOCKET ID_CLIENT: " << init_client->id_device << std::endl;
+        std::cout << "ERROR_INVALID_SOCKET ID_CLIENT: "<<init_client->id_device << std::endl;
         std::cout << WSAGetLastError() << std::endl;
     }
     set_timeout_sock[0] = (char)(*((char*)&set_timeout_value));
@@ -236,7 +236,7 @@ void thread_client(LPVOID config_client)
     adr_server.sin_port = htons(atoi(init_client->port.c_str()));
     adr_server.sin_family = AF_INET;
 
-connect_server:
+    connect_server:
     if (connect(sock_client, (sockaddr*)&adr_server, sizeof(adr_server)) == SOCKET_ERROR)
     {
         std::cout << "ERROR_CONNECT_WITH_SERVER: PORT " << ntohs(adr_server.sin_port) << std::endl;
@@ -249,13 +249,13 @@ connect_server:
         std::cout << "CONNECT_WITH_SERVER_DONE: PORT " << ntohs(adr_server.sin_port) << std::endl;
     }
 
-    /// --- ГґГ®Г°Г¬ГЁГ°Г®ГўГ Г­ГЁГҐ Г§Г ГЇГ°Г®Г±Г  --- ///
+    /// --- формирование запроса --- ///
     memset(buf_request, 0, 16);
     buf_request[0] = 2;
 
-    ///  --- Г®ГІГЇГ°Г ГўГЄГ  Г§Г ГЇГ°Г®Г±Г  --- ///
-next:
-wwait:
+    ///  --- отправка запроса --- ///
+    next:
+    wwait:
     Sleep(1);
     QueryPerformanceCounter(&time_river_read);
     time = (time_river_read.QuadPart - time_last_messeng.QuadPart) * 1000.0 / freqency.QuadPart;
@@ -264,9 +264,9 @@ wwait:
     {
         std::cout << "LIMIT_TIME_MESSENG_READING_EXCEEDED ID - " << init_client->id_device << " " << time << get_time_local() << std::endl;
     }
-
-    /// --- Г®ГІГЇГ°Г ГўГЄГ  Г§Г ГЇГ°Г®Г±Г  Г­Г  Г·ГІГҐГ­ГЁГҐ --- ///
-repeat_send_read:
+       
+    /// --- отправка запроса на чтение --- ///
+    repeat_send_read:
     QueryPerformanceCounter(&time_last_messeng);
     result = send(sock_client, buf_request, 16, NULL);
     if (result == SOCKET_ERROR)
@@ -279,7 +279,7 @@ repeat_send_read:
             || last_error == 10060 || last_error == 10061 || last_error == 10064 || last_error == 10065
             || last_error == 10108 || last_error == 10111 || last_error == 11001)
         {
-            sleep_time = 2000;
+        sleep_time = 2000;
 
         reconnect:
             std::cout << "RECONNECT..." << std::endl;
@@ -301,19 +301,19 @@ repeat_send_read:
             goto repeat_send_read;
         }
     }
-
+    
     count_buf = 0;
-    /// --- Г·ГІГҐГ­ГЁГҐ ГЇГҐГ°ГўГ»Гµ 12-ГЎГ Г©ГІ (ГЄГ®Г¬Г Г­Г¤Г»)--- ///
-    do
+    /// --- чтение первых 12-байт (команды)--- ///
+    do 
     {
         count_buf += recv(sock_client, buf_read + count_buf, 12 - count_buf, NULL);
     } while (count_buf < 12 && count_buf != SOCKET_ERROR);
 
-    /// ---  Г·ГІГҐГ­ГЁГҐ ГЄГ®Г«-ГўГ  Г·ГЁГІГ ГҐГ¬Г»Гµ Г¤Г Г­Г­Г»Гµ --- ///
-    num_data_from_server = *((int*)buf_read);
+    /// ---  чтение кол-ва читаемых данных --- ///
+    num_data_from_server = *((int*)buf_read);                                           
     num_data_from_server = num_data_from_server * sizeof(double);
 
-    //// ---- Г·ГЁГІГ ГҐГ¬ Г¤Г Г­Г­Г»ГҐ ГЁ ГЇГЁГёГЁГ¬ ГЁГµ Гў ГЎГіГґГҐГ° Г®ГЎГ¬ГҐГ­Г  --- ///
+    //// ---- читаем данные и пишим их в буфер обмена --- ///
     count_buf = 0;
     do
     {
@@ -368,41 +368,78 @@ repeat_send_read:
 
 void thread_server(LPVOID config_server)
 {
-    config_device* init_server = (config_device*)config_server;
+    config_device* init_server = (config_device*)config_server;   /// конфигурационные данные
 
-
+    /// --- все для сокетов --- ///  
     SOCKET sock_server;
     SOCKADDR_IN addr_server;
     SOCKET connect_client;
     SOCKADDR_IN addr_client;
-    mass_sock[init_server->id_device] = &connect_client;
-    int size_socket_client = sizeof(addr_client);
-    int  set_timeout_value = 2000;
-    char set_timeout[4];
+    int size_socket_client = sizeof(addr_client);   /// для accept
+    mass_sock[init_server->id_device] = &connect_client;  /// временно для закрытия сокетов  
+
+
+    /// --- для регистрации временных интервалов --- /// не так важно simintech живет по-своему
     LARGE_INTEGER end_time;
     LARGE_INTEGER start_time;
     LARGE_INTEGER freqency;
     QueryPerformanceFrequency(&freqency);
     double time;
+
+    /// --- буферы для приема запроса --- ///
+    WSABUF wsabuf_read;
     char* buf_read = new char[16];
-    int count_read = 0;
+    DWORD count_read = 0;
+    DWORD flag_recv = 0;
     int number_read_value = 0;
     int command = 0;
+    DWORD count_get_byte = 0;
+    DWORD count_send;
+
+    /////////////////////////////
+    int num_data_from_client = 0;
+    float value = 0;
+    int zz = 0;
+    double iter = 0;
+    ////////////////////////////
+
+    /// --- буферы для ответа --- ///
+    WSABUF wsabuf_write;
     int num_data = atoi(init_server->num_data.c_str());
     char* buf_write = new char[num_data * 8 + 12];
-    int* buf_mem_int;
     char* buf_mem;
-    double data_double;
     char* buf_write_out;
+    double data_double;
     int result_wait_mutex;
+    DWORD flag_send=0;
 
-    for (int i = 0; i < num_data * 8 + 12; i++) buf_write[i] = 0;
-    for (int i = 0; i < 4; i++) set_timeout[i] = (char)(*((char*)&set_timeout_value + i));
+    /// --- overlapped --- /// 
+    DWORD result_wait_recv;
+    DWORD result_wait_send;
+    WSAOVERLAPPED send_overlapped;
+    WSAOVERLAPPED recv_overlapped;
+    SecureZeroMemory((PVOID)&send_overlapped, sizeof(WSAOVERLAPPED));
+    SecureZeroMemory((PVOID)&recv_overlapped, sizeof(WSAOVERLAPPED));
+    send_overlapped.hEvent = WSACreateEvent();
+    recv_overlapped.hEvent = WSACreateEvent();
 
-    sock_server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    /// --- для хранения ошибки --- ///
+    int last_error = 0;
+
+    /// --- инийиализация WSABUF --- /// 
+    wsabuf_read.len = 16;
+    wsabuf_read.buf = buf_read;
+    wsabuf_write.len = num_data * 8 + 12;
+    wsabuf_write.buf = buf_write;
+
+
+
+    /// --- инициализация WSA-сокета --- ///
+    sock_server = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
     if (sock_server == INVALID_SOCKET)
     {
-        std::cout << "ERROR_INVALID_SOCKET" << std::endl;
+        std::cout << "ERROR_INITIALIZATION_SOCKET" << std::endl;
+        std::cout << WSAGetLastError() << std::endl;
         return;
     }
 
@@ -414,15 +451,15 @@ void thread_server(LPVOID config_server)
     {
         std::cout << "ERROR_BIND_SOCKET ID_SERVER: " << init_server->id_device << std::endl;
         std::cout << WSAGetLastError() << std::endl;
+        closesocket(sock_server);
         return;
     }
 
-    listen(sock_server, 2);
+    listen(sock_server, 1);
 
 next_client_simintech:
 
     connect_client = accept(sock_server, (sockaddr*)&addr_client, &size_socket_client);
-
     if (connect_client == INVALID_SOCKET)
     {
         std::cout << "ERROR_CONNECT_WITH_CLIENT" << std::endl;
@@ -438,8 +475,6 @@ next_client_simintech:
             << (int)addr_client.sin_addr.S_un.S_un_b.s_b4
             << "  PORT: " << addr_client.sin_port << std::endl;
     }
-    setsockopt(connect_client, SOL_SOCKET, SO_RCVTIMEO, set_timeout, sizeof(DWORD));
-    setsockopt(connect_client, SOL_SOCKET, SO_SNDTIMEO, set_timeout, sizeof(DWORD));
     QueryPerformanceCounter(&start_time);
 
 next:
@@ -449,45 +484,80 @@ next:
     {
         std::cout << "LIMIT_TIME_MESSENG_WRITING_EXCEEDED ID - " << init_server->id_device << "\t" << time << get_time_local() << std::endl;
     }
-
+client_sleep_wait:
     count_read = 0;
-    do
+read_messeng:
+    wsabuf_read.buf = buf_read+count_read;
+    wsabuf_read.len = 16-count_read;
+    count_get_byte = 0;
+    flag_recv = 0;
+    if (WSARecv(connect_client, &wsabuf_read, 1, &count_get_byte, &flag_recv, &recv_overlapped, NULL) == SOCKET_ERROR)
     {
-        count_read += recv(connect_client, buf_read + count_read, 16 - count_read, NULL);
-        if (count_read == 4 || count_read == 8)
+        last_error = WSAGetLastError();
+        if (last_error != WSA_IO_PENDING)
         {
-            command = *(int*)&buf_read[0];
-            if (command == 4 || command == 1) break;
-        }
-    } while (count_read < 16 && count_read != SOCKET_ERROR);
+            std::cout << "ERROR_RECV" << std::endl;
+            std::cout << last_error << std::endl;
+            closesocket(connect_client);
+            goto next_client_simintech;
+        }       
+    }
 
-    //count_read=recv(connect_client, buf_read, 16, NULL);
-    if (count_read == SOCKET_ERROR)
+    result_wait_recv = WSAWaitForMultipleEvents(1, &recv_overlapped.hEvent, TRUE, INFINITE, TRUE);
+    last_error = WSAGetLastError();
+    if (result_wait_recv == WSA_WAIT_FAILED)
     {
-        std::cout << "ERROR_READ PORT: " << addr_client.sin_port << " " << get_time_local() << std::endl;
-        std::cout << "ERROR - " << WSAGetLastError() << std::endl;
-        //shutdown(connect_client, SD_BOTH);
+        std::cout << "ERROR_WAIT_EVENT" << std::endl;
+        std::cout << last_error << std::endl;
+        closesocket(connect_client);
+        goto next_client_simintech;
+    }    
+    WSAResetEvent(recv_overlapped.hEvent);
+
+    if (!WSAGetOverlappedResult(connect_client, &recv_overlapped, &count_get_byte, FALSE, &flag_recv))
+    {
+        last_error = WSAGetLastError();
+        std::cout << "ERROR_READ_SERVER ID - "<<init_server->id_device << std::endl;
+        std::cout << last_error << std::endl;
         closesocket(connect_client);
         goto next_client_simintech;
     }
 
+    count_read += count_get_byte;
+    if (count_read == 0 && last_error!=WSA_IO_PENDING)
+    {
+        std::cout << "ERROR_EXCHANGE_WITH_CLIENT" << std::endl;
+        std::cout << WSAGetLastError() << std::endl;
+        closesocket(connect_client);
+        goto next_client_simintech;
+    }
+    if (count_read == 4 || count_read == 8)
+    {
+        command = *((int*)&buf_read[0]);
+        if (command == 4 || command == 1)
+        {
+            std::cout << "ERROR_CLIENT_DISCONNECTED_PORT: " << addr_client.sin_port << "  " << get_time_local() << std::endl;
+            closesocket(connect_client);
+            goto next_client_simintech;
+        }       
+    } 
+    if (count_read < 16) goto read_messeng;
+    num_data_from_client = *((int*)&buf_read[12]);
+
+    if (num_data_from_client !=0)
+    {
+        std::cout << "ERROR_EXCHANGE_WITH_CLIENT: CLIENT_TRANSFER_DATA" << std::endl;
+        closesocket(connect_client);
+        goto next_client_simintech;
+    }
+    
     QueryPerformanceCounter(&start_time);
-    command = *(int*)&buf_read[0];
-    number_read_value = *(int*)&buf_read[12];
-
-    if (command == 4 || command == 1)
-    {
-        std::cout << "DISCONNECT_ON_THE_INITIATIVE_CLIENT ID - " << init_server->id_device << get_time_local() << std::endl;
-        //shutdown(connect_client, SD_BOTH);
-        closesocket(connect_client);
-        goto next_client_simintech;
-    }
 
     for (int i = 0; i < 4; i++)
     {
         buf_write[i] = *((char*)&num_data + i);
     }
-
+    
     if (init_server->type_data == "analog")
     {
         buf_mem = buf_analog_out;
@@ -508,7 +578,7 @@ next:
             ReleaseMutex(mutex_analog_out);
         }
     }
-
+        
     if (init_server->type_data == "discrete")
     {
         buf_mem = buf_discrete_out;
@@ -529,16 +599,41 @@ next:
             ReleaseMutex(mutex_discrete_out);
         }
     }
-
-    if (send(connect_client, buf_write, 12 + num_data * 8, NULL) == SOCKET_ERROR)
+   
+    if (WSASend(connect_client, &wsabuf_write, 1, &count_send, flag_send, &send_overlapped,NULL) == SOCKET_ERROR)
     {
-        std::cout << "ERROR_SEND " << init_server->port << " " << get_time_local() << std::endl;
-        std::cout << "ERROR - " << WSAGetLastError() << std::endl;
-        //shutdown(connect_client, SD_BOTH);
+        last_error = WSAGetLastError();
+        if (last_error != WSA_IO_PENDING)
+        {
+            std::cout << "ERROR_SEND" << std::endl;
+            std::cout << last_error << std::endl;
+        }
+        if (last_error == 10035 || last_error == 10038 || last_error == 10050 || last_error == 10051 || last_error == 10052 ||
+            last_error == 10053 || last_error == 10054 || last_error == 10057 || last_error == 10058 || last_error == 10053 ||
+            last_error == 10061 || last_error == 10064 || last_error == 10065 || last_error == 10101)
+        {
+            closesocket(connect_client);
+            goto next_client_simintech;
+        }
+    } 
+    result_wait_send = WSAWaitForMultipleEvents(1, &send_overlapped.hEvent, TRUE, INFINITE, TRUE);
+    if (result_wait_send == WSA_WAIT_FAILED)
+    {
+        std::cout << "ERROR_WAIT_EVENT" << std::endl;
+        std::cout << WSAGetLastError() << std::endl;
+        closesocket(connect_client);
+        goto next_client_simintech;
+    }
+    WSAGetOverlappedResult(connect_client, &send_overlapped, &count_send, FALSE, &flag_send);
+    if (count_send != num_data * 8 + 12)
+    {
+        std::cout << "ERROR_TRANSFER_DATA" << std::endl;
+        std::cout << WSAGetLastError() << std::endl;
         closesocket(connect_client);
         goto next_client_simintech;
     }
     goto next;
+    /////////////////////////////
 
 }
 
@@ -629,7 +724,7 @@ LONG WINAPI handler_crash(PEXCEPTION_POINTERS pExceptionInfo)
 BOOL WINAPI close_prog(DWORD fdwCtrlType)
 {
     for (int i = 0; i < 4; i++) closesocket(*mass_sock[i]);
-
+    
     write_to_log_file();
     form_string("WTF  O_O", 1);
     form_string("CLOSE_PROGRAMM");
