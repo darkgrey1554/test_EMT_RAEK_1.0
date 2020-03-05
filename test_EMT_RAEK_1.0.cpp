@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <conio.h>
 #include <list>
+#include<TCHAR.H>
 
 
 /// --- кол-во данных в общей памяти --- ///
@@ -52,8 +53,9 @@ FILE* config_file;
 std::list <std::string> config_info;
 std::string str_info;
 int res_read = 0;
-char simvol;
+char simvol=0;
 int num_adapters;
+
 struct config_device
 {
 	std::string type_device;
@@ -62,12 +64,30 @@ struct config_device
 	std::string port;
 	std::string type_data;
 	std::string num_data;
+    std::string offset;
+    std::string freqency;
 };
-config_device* adapters;
+std::list <config_device> v_adapters;
+
+struct config_memory
+{
+    std::string name;
+    int size=0;
+};
+
+config_memory Sharmem_InDiscrete;
+config_memory Sharmem_InAnalog;
+config_memory Sharmem_OutDiscrete;
+config_memory Sharmem_OutAnalog;
+
+config_device adapters[4];
 int count_adapt = 0;
+int count_server = 0;
+int count_client = 0;
 
 /// --- вспомогательные функии --- ///
-
+void init_struct_config_device(std::string str);
+void init_struct_shared_memory(std::string str);
 std::string get_time_local();
 void write_to_log_file(); // записть в лог файл;
 void form_string(const char* str, int f_time = 0, unsigned long value = 0);
@@ -84,10 +104,10 @@ BOOL WINAPI close_prog(DWORD fdwCtrlType);
 int main()
 {
 
-    SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-    GetPriorityClass(GetCurrentProcess());
-    old_handler = SetUnhandledExceptionFilter(handler_crash);
-    SetConsoleCtrlHandler(close_prog, TRUE);
+    //SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
+    //GetPriorityClass(GetCurrentProcess());
+    //old_handler = SetUnhandledExceptionFilter(handler_crash);
+    //SetConsoleCtrlHandler(close_prog, TRUE);
     HANDLE handle_window = GetConsoleWindow();
     WSADATA wsadata;
     if (WSAStartup(MAKEWORD(2, 2), &wsadata) != 0)
@@ -98,7 +118,50 @@ int main()
 
 	/// --- считывание инф с конфиг файла --- ///
 
-	config_file = fopen("config.txt", "r");
+    /////////////////////////////////////////////////////
+
+     ///  --- config_ver2 --- ///
+    config_file = fopen("config_ver2.txt", "r");
+    if (config_file == NULL)
+    {
+        std::cout << "ERROR_OPENING_CONFIG_FILE" << std::endl;
+        return -1;
+    }
+    
+    
+    while (1)
+    {
+       
+        while (simvol != '\n' && res_read!=EOF)
+        {
+            res_read = fscanf(config_file, "%c", &simvol);
+            if (simvol > 0x1F && res_read != EOF) str_info += simvol;
+        }
+        if (str_info == "[List]" || res_read == EOF) break;
+        if (str_info.substr(0, 4) == "@EMT")
+        {            
+            init_struct_shared_memory(str_info);
+        }
+        if (str_info.substr(0, 4) == "@RAE")
+        {
+            init_struct_config_device(str_info);
+        }
+        str_info.clear();
+        simvol = 0;
+    }
+
+
+
+    ///////////////////////////////////
+
+    str_info.clear();
+    simvol = 0;
+    fclose(config_file);
+    system("pause");
+
+    //////////////////////////////////////////////////////
+     /// --- config 02.2020 --- /// 
+	/*config_file = fopen("config.txt", "r");
 	while (res_read != EOF)
 	{
 		res_read = fscanf(config_file, "%c", &simvol);
@@ -112,7 +175,6 @@ int main()
 	if (str_info.length()!=0) config_info.push_back(str_info);
 
 	num_adapters = config_info.size() / 5;
-	adapters = new config_device[num_adapters];
 
 	for (auto iter = config_info.begin(); iter != config_info.end();)
 	{
@@ -124,8 +186,8 @@ int main()
 		adapters[count_adapt].id_device = count_adapt;
 		count_adapt++;
 	}
-	
-
+    */
+    
 	/// --- инициализация общей памяти --- /// 
 
 	TCHAR muxdisout[] = TEXT("mutex_discrete_out");
@@ -140,17 +202,17 @@ int main()
 
 	mutex_discrete_out = CreateMutex(NULL, FALSE, muxdisout);
 	mutex_analog_out = CreateMutex(NULL, FALSE, muxanalogout);
-	sharmemory_emt_discrete_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_OUT * 4, sharmemorydisout);
-	sharmemory_emt_analog_out = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_OUT * 4, sharmemoryanalogout);
-	buf_discrete_out = (char*)MapViewOfFile(sharmemory_emt_discrete_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_OUT * 4);
-	buf_analog_out = (char*)MapViewOfFile(sharmemory_emt_analog_out, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_OUT * 4);
+	sharmemory_emt_discrete_out = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, Sharmem_OutDiscrete.size*4, Sharmem_OutDiscrete.name.c_str());
+	sharmemory_emt_analog_out = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, Sharmem_OutAnalog.size * 4, Sharmem_OutAnalog.name.c_str());
+	buf_discrete_out = (char*)MapViewOfFile(sharmemory_emt_discrete_out, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_OutDiscrete.size * 4);
+	buf_analog_out = (char*)MapViewOfFile(sharmemory_emt_analog_out, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_OutAnalog.size * 4);
 
 	mutex_discrete_in = CreateMutex(NULL, FALSE, muxdisin);
 	mutex_analog_in = CreateMutex(NULL, FALSE, muxanalogin);
-	sharmemory_emt_discrete_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_DISCRETE_IN * 4, sharmemorydisin);
-	sharmemory_emt_analog_in = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, EMT_ANALOG_IN * 4, sharmemoryanalogin);
-	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_DISCRETE_IN * 4);
-	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, EMT_ANALOG_IN * 4);
+	sharmemory_emt_discrete_in = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, Sharmem_InDiscrete.size * 4, Sharmem_InDiscrete.name.c_str());
+	sharmemory_emt_analog_in = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, Sharmem_InAnalog.size * 4, Sharmem_InAnalog.name.c_str());
+	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InDiscrete.size * 4);
+	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InAnalog.size * 4);
 
 	/// --- инициализацая потоков SERVER CLIENT --- ///
 
@@ -484,7 +546,6 @@ next:
     {
         std::cout << "LIMIT_TIME_MESSENG_WRITING_EXCEEDED ID - " << init_server->id_device << "\t" << time << get_time_local() << std::endl;
     }
-client_sleep_wait:
     count_read = 0;
 read_messeng:
     wsabuf_read.buf = buf_read+count_read;
@@ -633,7 +694,6 @@ read_messeng:
         goto next_client_simintech;
     }
     goto next;
-    /////////////////////////////
 
 }
 
@@ -795,4 +855,54 @@ void form_string(const char* str, int f_time, unsigned long value)
 void KEEP_A_DIARY()
 {
     write_to_log_file();
+}
+
+void init_struct_shared_memory(std::string str)
+{
+    int pos[2] = { 0, 0};
+    std::string helpstr1;
+    std::string helpstr2;
+    pos[0] = str.find(' ', 0);
+    pos[1] = str.find(' ', pos[0] + 1);
+    helpstr1 = str.substr(pos[0], pos[1] - pos[0]);
+    helpstr2 = str.substr(pos[1] + 1);
+    if (str.find("InputDiscrete") != -1)
+    {        
+        Sharmem_InDiscrete.size = atoi(helpstr1.c_str());       
+        Sharmem_InDiscrete.name = helpstr2;
+        return;
+    }
+    if (str.find("InputAnalog") != -1)
+    {
+        Sharmem_InAnalog.size = atoi(helpstr1.c_str());       
+        Sharmem_InAnalog.name = helpstr2;
+        return;
+    }
+    if (str.find("OutputDiscrete") != -1)
+    {
+       
+        Sharmem_OutDiscrete.size = atoi(helpstr1.c_str());       
+        Sharmem_OutDiscrete.name = helpstr2;
+        return;
+    }
+
+    if (str.find("OutputAnalog") != -1)
+    {        
+        Sharmem_OutAnalog.size = atoi(helpstr1.c_str());
+        Sharmem_OutAnalog.name = helpstr2;
+        return;
+    }
+}
+
+void init_struct_config_device(std::string str)
+{
+    config_device device;
+    int pos[2] = { 0, 0 };
+    pos[0] = str.find(' ', 0);
+    pos[1] = str.find(' ', pos[0] + 1);
+
+
+
+    std::string helpstr1;
+    std::string helpstr2;
 }

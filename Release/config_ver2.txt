@@ -1,0 +1,13 @@
+[EMT]
+@EMT_InputDiscrete count namesharememory1
+@EMT_InpuAnalog count namesharememory2
+@EMT_OutputDiscrete count namesharememory4
+@EMT_OutputDiscrete count namesharememory5
+[RAEK]
+@RAEK_InputDiscrete offset count ip port frequency
+@RAEK_InputAnalog offset count ip port frequency
+@RAEK_OutputDiscrete offset count ip port frequency
+@RAEK_OutputDiscrete offset count ip port frequency
+[List]	
+@KKS	EMT	RAEK
+kksN1	kksK1
