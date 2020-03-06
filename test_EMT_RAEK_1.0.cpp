@@ -55,17 +55,17 @@ std::string str_info;
 int res_read = 0;
 char simvol=0;
 int num_adapters;
-
+// ver_2
 struct config_device
 {
-	std::string type_device;
-	int id_device = -1;
-	std::string ip_address;
-	std::string port;
-	std::string type_data;
-	std::string num_data;
-    std::string offset;
-    std::string freqency;
+    std::string type_device;
+    int id_device = -1;
+    std::string ip_address;
+    int port =0;
+    std::string type_data;
+    int num_data =0;
+    int offset =0;
+    int freqency =0;
 };
 std::list <config_device> v_adapters;
 
@@ -86,7 +86,7 @@ int count_server = 0;
 int count_client = 0;
 
 /// --- вспомогательные функии --- ///
-void init_struct_config_device(std::string str);
+int init_struct_config_device(std::string str);
 void init_struct_shared_memory(std::string str);
 std::string get_time_local();
 void write_to_log_file(); // записть в лог файл;
@@ -104,10 +104,10 @@ BOOL WINAPI close_prog(DWORD fdwCtrlType);
 int main()
 {
 
-    //SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-    //GetPriorityClass(GetCurrentProcess());
-    //old_handler = SetUnhandledExceptionFilter(handler_crash);
-    //SetConsoleCtrlHandler(close_prog, TRUE);
+    SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
+    GetPriorityClass(GetCurrentProcess());
+    old_handler = SetUnhandledExceptionFilter(handler_crash);
+    SetConsoleCtrlHandler(close_prog, TRUE);
     HANDLE handle_window = GetConsoleWindow();
     WSADATA wsadata;
     if (WSAStartup(MAKEWORD(2, 2), &wsadata) != 0)
@@ -144,61 +144,19 @@ int main()
         }
         if (str_info.substr(0, 4) == "@RAE")
         {
-            init_struct_config_device(str_info);
+             init_struct_config_device(str_info);
         }
         str_info.clear();
         simvol = 0;
     }
-
-
-
-    ///////////////////////////////////
-
-    str_info.clear();
-    simvol = 0;
     fclose(config_file);
-    system("pause");
-
-    //////////////////////////////////////////////////////
-     /// --- config 02.2020 --- /// 
-	/*config_file = fopen("config.txt", "r");
-	while (res_read != EOF)
-	{
-		res_read = fscanf(config_file, "%c", &simvol);
-		if (simvol > 0x20 && res_read != EOF) str_info += simvol;
-		if (simvol == '\n' && str_info.length()!=0)
-		{
-			config_info.push_back(str_info);
-			str_info.clear();
-		}
-	}
-	if (str_info.length()!=0) config_info.push_back(str_info);
-
-	num_adapters = config_info.size() / 5;
-
-	for (auto iter = config_info.begin(); iter != config_info.end();)
-	{
-		adapters[count_adapt].type_device = *(iter++);
-		adapters[count_adapt].ip_address = *(iter++);
-		adapters[count_adapt].port = *(iter++);
-		adapters[count_adapt].type_data = *(iter++);
-		adapters[count_adapt].num_data = *(iter++);
-		adapters[count_adapt].id_device = count_adapt;
-		count_adapt++;
-	}
-    */
-    
+       
 	/// --- инициализация общей памяти --- /// 
 
 	TCHAR muxdisout[] = TEXT("mutex_discrete_out");
 	TCHAR muxdisin[] = TEXT("mutex_discrete_in");
 	TCHAR muxanalogout[] = TEXT("mutex_analog_out");
 	TCHAR muxanalogin[] = TEXT("mutex_analog_in");
-
-	TCHAR sharmemorydisout[] = TEXT("sharmemory_emt_discrete_out");
-	TCHAR sharmemorydisin[] = TEXT("sharmemory_emt_discrete_in");
-	TCHAR sharmemoryanalogout[] = TEXT("sharmemory_emt_analog_out");
-	TCHAR sharmemoryanalogin[] = TEXT("sharmemory_emt_analog_in");
 
 	mutex_discrete_out = CreateMutex(NULL, FALSE, muxdisout);
 	mutex_analog_out = CreateMutex(NULL, FALSE, muxanalogout);
@@ -215,18 +173,20 @@ int main()
 	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InAnalog.size * 4);
 
 	/// --- инициализацая потоков SERVER CLIENT --- ///
-
-	for (int i = 0; i < num_adapters; i++)
-	{
-		if (adapters[i].type_device == "CLIENT")
-		{
-			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_client,&adapters[i], NULL, NULL);
-		}
-		if (adapters[i].type_device == "SERVER")
-		{
-			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_server,&adapters[i], NULL, NULL);
-		}
-	}
+   
+    for (std::list<config_device>::iterator iter_list = v_adapters.begin(); iter_list != v_adapters.end(); iter_list++)
+        {
+          config_device adapt = *iter_list;
+          if (adapt.type_device == "Client")
+          {
+              CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_client, &(*iter_list), NULL, NULL);
+          }
+          if (adapt.type_device == "Server")
+          {
+              CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_server, &(*iter_list), NULL, NULL);
+          }
+    }
+	
 
 
 next:
@@ -264,7 +224,7 @@ void thread_client(LPVOID config_client)
     int last_error;
     int sleep_time;
     int count_buf = 0;
-    int num_data = atoi(init_client->num_data.c_str());
+    int num_data = init_client->num_data;
     char* buf_read = new char[num_data * 8];
     int num_data_from_server = 0;
     DWORD result_wait_mutex = 0;
@@ -295,7 +255,7 @@ void thread_client(LPVOID config_client)
 
 
     adr_server.sin_addr.s_addr = inet_addr(init_client->ip_address.c_str());
-    adr_server.sin_port = htons(atoi(init_client->port.c_str()));
+    adr_server.sin_port = htons(init_client->port);
     adr_server.sin_family = AF_INET;
 
     connect_server:
@@ -467,7 +427,7 @@ void thread_server(LPVOID config_server)
 
     /// --- буферы для ответа --- ///
     WSABUF wsabuf_write;
-    int num_data = atoi(init_server->num_data.c_str());
+    int num_data = init_server->num_data;
     char* buf_write = new char[num_data * 8 + 12];
     char* buf_mem;
     char* buf_write_out;
@@ -506,7 +466,7 @@ void thread_server(LPVOID config_server)
     }
 
     addr_server.sin_addr.s_addr = inet_addr(init_server->ip_address.c_str());
-    addr_server.sin_port = htons(atoi(init_server->port.c_str()));
+    addr_server.sin_port = htons(init_server->port);
     addr_server.sin_family = AF_INET;
 
     if (bind(sock_server, (sockaddr*)&addr_server, sizeof(addr_server)) == SOCKET_ERROR)
@@ -864,7 +824,7 @@ void init_struct_shared_memory(std::string str)
     std::string helpstr2;
     pos[0] = str.find(' ', 0);
     pos[1] = str.find(' ', pos[0] + 1);
-    helpstr1 = str.substr(pos[0], pos[1] - pos[0]);
+    helpstr1 = str.substr(pos[0]+1, pos[1] - pos[0]-1);
     helpstr2 = str.substr(pos[1] + 1);
     if (str.find("InputDiscrete") != -1)
     {        
@@ -892,17 +852,66 @@ void init_struct_shared_memory(std::string str)
         Sharmem_OutAnalog.name = helpstr2;
         return;
     }
+
 }
 
-void init_struct_config_device(std::string str)
+int init_struct_config_device(std::string str)
 {
     config_device device;
-    int pos[2] = { 0, 0 };
-    pos[0] = str.find(' ', 0);
-    pos[1] = str.find(' ', pos[0] + 1);
-
-
-
     std::string helpstr1;
     std::string helpstr2;
+    int pos[2] = { 0, 0 };
+
+    pos[0] = str.find(' ', 0);
+    if (pos[0] == -1) return -1;
+    pos[0]++;
+    pos[1] = str.find(' ', pos[0]);
+    if (pos[1] == -1) return -1;
+    helpstr1 = str.substr(pos[0], pos[1] - pos[0]);
+    device.offset = atoi(helpstr1.c_str());
+
+    pos[0] = pos[1]+1;
+    pos[1] = str.find(' ', pos[0]);
+    if (pos[1] == -1) return -1;
+    helpstr1 = str.substr(pos[0], pos[1] - pos[0]);
+    device.num_data = atoi(helpstr1.c_str());
+
+    pos[0] = pos[1]+1;
+    pos[1] = str.find(' ', pos[0]);
+    if (pos[1] == -1) return -1;
+    helpstr1 = str.substr(pos[0], pos[1] - pos[0]);
+    device.ip_address = helpstr1;
+
+    pos[0] = pos[1]+1;
+    pos[1] = str.find(' ', pos[0]);
+    if (pos[1] == -1) return -1;
+    helpstr1 = str.substr(pos[0], pos[1] - pos[0]);
+    device.port = atoi(helpstr1.c_str());
+
+    pos[0] = pos[1]+1;
+    helpstr1 = str.substr(pos[0]);
+    if (pos[1] == -1) return -1;
+    device.freqency = atoi(helpstr1.c_str());
+
+    if (str.find("Analog") != -1)
+    {
+        device.type_data = "analog";
+    }
+    else if (str.find("Discrete") != -1)
+    {
+        device.type_data = "discrete";
+    }
+    else return -1;
+
+    if (str.find("Input") != -1)
+    {
+        device.type_device = "Server";
+    }
+    else if (str.find("Output") != -1)
+    {
+        device.type_device = "Client";
+    }
+    else return -1;
+    v_adapters.push_back(device);
+    return 0;
 }

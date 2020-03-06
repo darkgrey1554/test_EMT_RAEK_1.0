@@ -6,8 +6,8 @@
 [RAEK]
 @RAEK_InputDiscrete 0 100 127.0.0.1 19006 100
 @RAEK_InputAnalog 0 100 127.0.0.1 19007 100
-@RAEK_OutputDiscrete 0 100 127.0.0.1 19004 100
-@RAEK_OutputAnalog 0 100 127.0.0.1 19005 100
+@RAEK_OutputDiscrete 0 100 127.0.0.1 19005 100
+@RAEK_OutputAnalog 0 100 127.0.0.1 19004 100
 [List]	
 @KKS	EMT	RAEK
 kksN1	kksK1
