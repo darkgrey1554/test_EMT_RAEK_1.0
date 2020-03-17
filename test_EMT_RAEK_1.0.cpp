@@ -18,7 +18,7 @@
 #define T_FORWARD_DEFAULT 90;
 #define TIMEOUT_RECV 2000;
 #define MESSENG_BUFFER 10
-#define TIME_OUT 100
+#define TIME_DIV 25
 
 
 
@@ -103,7 +103,7 @@ BOOL WINAPI close_prog(DWORD fdwCtrlType);
 
 int main()
 {
-
+    std::string asdqwe = get_time_local();
     SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
     GetPriorityClass(GetCurrentProcess());
     old_handler = SetUnhandledExceptionFilter(handler_crash);
@@ -117,10 +117,7 @@ int main()
     }
 
 	/// --- считывание инф с конфиг файла --- ///
-
-    /////////////////////////////////////////////////////
-
-     ///  --- config_ver2 --- ///
+    ///  --- config_ver2 --- ///
     config_file = fopen("config_ver2.txt", "r");
     if (config_file == NULL)
     {
@@ -169,13 +166,13 @@ int main()
 	mutex_analog_in = CreateMutex(NULL, FALSE, muxanalogin);
 	sharmemory_emt_discrete_in = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, Sharmem_InDiscrete.size * 4, Sharmem_InDiscrete.name.c_str());
 	sharmemory_emt_analog_in = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, Sharmem_InAnalog.size * 4, Sharmem_InAnalog.name.c_str());
-	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InDiscrete.size * 4);
-	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InAnalog.size * 4);
+	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InDiscrete.size * (int)4);
+	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InAnalog.size * (int)4);
 
 	/// --- инициализацая потоков SERVER CLIENT --- ///
    
     for (std::list<config_device>::iterator iter_list = v_adapters.begin(); iter_list != v_adapters.end(); iter_list++)
-        {
+    {
           config_device adapt = *iter_list;
           if (adapt.type_device == "Client")
           {
@@ -186,9 +183,6 @@ int main()
               CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)thread_server, &(*iter_list), NULL, NULL);
           }
     }
-	
-
-
 next:
 	Sleep(2000);
 	
@@ -204,56 +198,69 @@ next:
 }
 
 
-
-
 void thread_client(LPVOID config_client)
 {
-	
+	/// --- инициализация параметров клиента --- /// 
     config_device* init_client = (config_device*)config_client;
     SOCKET sock_client;
     SOCKADDR_IN adr_server;
-    mass_sock[init_client->id_device] = &sock_client;
-    char* buf_request = new char[16];
+    mass_sock[init_client->id_device] = &sock_client; // на будущее но хз ...   
     LARGE_INTEGER time_last_messeng;
     LARGE_INTEGER time_river_read;
     LARGE_INTEGER freqency;
     QueryPerformanceFrequency(&freqency);
-    QueryPerformanceCounter(&time_last_messeng);
+
+    /// --- иниц пакета запроса --- ///
+    char* buf_request = new char[16];
+    WSABUF wsasend;
+    DWORD count_send = 0;
+    DWORD flag_send = 0;
+    DWORD result_wait_send;
+    WSAOVERLAPPED send_overlapped;
+    SecureZeroMemory((PVOID)&send_overlapped, sizeof(WSAOVERLAPPED));
+    send_overlapped.hEvent = WSACreateEvent();
+    wsasend.buf = buf_request;
+    wsasend.len = 16;
+
+    /// --- иниц пакета запроса --- ///
+    int num_data = init_client->num_data;
+    char* buf_read = new char[num_data * 8];
+    WSABUF wsarecv;
+    DWORD count_recv = 0;
+    DWORD flag_recv = 0;
+    DWORD result_wait_recv;
+    WSAOVERLAPPED recv_overlapped;
+    SecureZeroMemory((PVOID)&recv_overlapped, sizeof(WSAOVERLAPPED));
+    recv_overlapped.hEvent = WSACreateEvent();
+    wsarecv.buf = buf_read;
+    wsarecv.len = num_data*8;
+    
     double time;
     int result;
     int last_error;
     int sleep_time;
     int count_buf = 0;
-    int num_data = init_client->num_data;
-    char* buf_read = new char[num_data * 8];
+    
+    
     int num_data_from_server = 0;
     DWORD result_wait_mutex = 0;
     int data_int=0;
     float data_float=0.;
     char* buf_cl;
     char* buf_mem;
-    char set_timeout_sock[4];
-    int  set_timeout_value = 2000;
-
-
+ 
     for (int i = 0; i < num_data * 8; i++) buf_read[i] = 0;
 
     /// --- соединение с сервером --- ///
-    sock_client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    repeat_connect:
+    sock_client = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP,NULL,0, WSA_FLAG_OVERLAPPED);
     if (sock_client == INVALID_SOCKET)
     {
         std::cout << "ERROR_INVALID_SOCKET ID_CLIENT: "<<init_client->id_device << std::endl;
         std::cout << WSAGetLastError() << std::endl;
+        return;
     }
-    set_timeout_sock[0] = (char)(*((char*)&set_timeout_value));
-    set_timeout_sock[1] = (char)(*((char*)&set_timeout_value + 1));
-    set_timeout_sock[2] = (char)(*((char*)&set_timeout_value + 2));
-    set_timeout_sock[3] = (char)(*((char*)&set_timeout_value + 3));
-
-    setsockopt(sock_client, SOL_SOCKET, SO_RCVTIMEO, set_timeout_sock, sizeof(DWORD));
-    setsockopt(sock_client, SOL_SOCKET, SO_SNDTIMEO, set_timeout_sock, sizeof(DWORD));
-
-
+    
     adr_server.sin_addr.s_addr = inet_addr(init_client->ip_address.c_str());
     adr_server.sin_port = htons(init_client->port);
     adr_server.sin_family = AF_INET;
@@ -274,15 +281,15 @@ void thread_client(LPVOID config_client)
     /// --- формирование запроса --- ///
     memset(buf_request, 0, 16);
     buf_request[0] = 2;
-
+    QueryPerformanceCounter(&time_last_messeng);
     ///  --- отправка запроса --- ///
     next:
     wwait:
     Sleep(1);
     QueryPerformanceCounter(&time_river_read);
     time = (time_river_read.QuadPart - time_last_messeng.QuadPart) * 1000.0 / freqency.QuadPart;
-    if (time < 80) goto wwait;
-    if (time > TIME_OUT)
+    if (time < (init_client->freqency-TIME_DIV)) goto wwait;
+    if (time > init_client->freqency)
     {
         std::cout << "LIMIT_TIME_MESSENG_READING_EXCEEDED ID - " << init_client->id_device << " " << time << get_time_local() << std::endl;
     }
@@ -290,40 +297,70 @@ void thread_client(LPVOID config_client)
     /// --- отправка запроса на чтение --- ///
     repeat_send_read:
     QueryPerformanceCounter(&time_last_messeng);
-    result = send(sock_client, buf_request, 16, NULL);
-    if (result == SOCKET_ERROR)
+
+    if (WSASend(sock_client, &wsasend, 1, &count_send, flag_send, &send_overlapped, NULL) == SOCKET_ERROR)
     {
         last_error = WSAGetLastError();
-        std::cout << "ERROR_READING_PORT " << init_client->port << std::endl;
-        std::cout << "ERROR - " << last_error << std::endl;
-
-        if (last_error >= 10050 && last_error <= 10058 && last_error != 10055 || last_error == 10038
-            || last_error == 10060 || last_error == 10061 || last_error == 10064 || last_error == 10065
-            || last_error == 10108 || last_error == 10111 || last_error == 11001)
+        if (last_error != WSA_IO_PENDING)
         {
-        sleep_time = 2000;
-
-        reconnect:
-            std::cout << "RECONNECT..." << std::endl;
-            form_string("RECONECT...");
-            closesocket(sock_client);
-
-            sock_client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-            if (connect(sock_client, (sockaddr*)&adr_server, sizeof(adr_server)) == SOCKET_ERROR)
+            std::cout << "ERROR_SEND" << std::endl;
+            std::cout << last_error << std::endl;
+            if (last_error == 10035 || last_error == 10038 || last_error == 10050 || last_error == 10051 || last_error == 10052 ||
+                last_error == 10053 || last_error == 10054 || last_error == 10057 || last_error == 10058 || last_error == 10053 ||
+                last_error == 10061 || last_error == 10064 || last_error == 10065 || last_error == 10101)
             {
-                std::cout << "ERROR_CONNECTING_PORT " << ntohs(adr_server.sin_port) << get_time_local() << std::endl;
-                std::cout << "ERROR - " << WSAGetLastError() << std::endl;
-                Sleep(sleep_time);
-                sleep_time += sleep_time;
-                if (sleep_time >= 60000) sleep_time = 2000;
-                goto reconnect;
+                sleep_time = 2000;
+             reconnect:
+                std::cout << "RECONNECT..." << std::endl;
+                closesocket(sock_client);
+                sock_client = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+                if (connect(sock_client, (sockaddr*)&adr_server, sizeof(adr_server)) == SOCKET_ERROR)
+                {
+                    std::cout << "ERROR_CONNECTING_PORT " << ntohs(adr_server.sin_port) << get_time_local() << std::endl;
+                    std::cout << "ERROR - " << WSAGetLastError() << std::endl;
+                    Sleep(sleep_time);
+                    sleep_time += sleep_time;
+                    if (sleep_time >= 60000) sleep_time = 2000;
+                    goto reconnect;
+                }
+                std::cout << "CONNECT_WITH_SERVER_DONE: PORT " << ntohs(adr_server.sin_port) << get_time_local() << std::endl;
+                goto repeat_send_read;
             }
-            std::cout << "CONNECT_WITH_SERVER_DONE: PORT " << ntohs(adr_server.sin_port) << get_time_local() << std::endl;
-            goto repeat_send_read;
-        }
+        }        
     }
+    result_wait_send = WSAWaitForMultipleEvents(1, &send_overlapped.hEvent, TRUE, INFINITE, TRUE);
+    if (result_wait_send == WSA_WAIT_FAILED)
+    {
+        std::cout << "ERROR_WAIT_EVENT" << std::endl;
+        std::cout << WSAGetLastError() << std::endl;
+        closesocket(sock_client);
+        goto repeat_connect;
+    }
+    WSAGetOverlappedResult(sock_client, &send_overlapped, &count_send, FALSE, &flag_send);
+    if (count_send != 16)
+    {
+        std::cout << "ERROR_REQEST" << std::endl;
+        std::cout << WSAGetLastError() << std::endl;
+        closesocket(sock_client);
+        goto repeat_connect;
+    }
+
+    /// --- прием сообщения --- /// 
+
+    if (WSARecv(sock_client, &wsarecv, 1, &count_recv, &flag_recv, &recv_overlapped, NULL) == SOCKET_ERROR)
+    {
+
+    }
+
+
+    goto next;
+
+    /// --- прием данных --- ///
+
     
+
+
+
     count_buf = 0;
     /// --- чтение первых 12-байт (команды)--- ///
     do 
@@ -581,7 +618,7 @@ read_messeng:
     
     if (init_server->type_data == "analog")
     {
-        buf_mem = buf_analog_out;
+        buf_mem = buf_analog_out+init_server->offset*sizeof(float);
         buf_write_out = buf_write + 12;
         result_wait_mutex = WaitForSingleObject(mutex_analog_out, 4);
         if (result_wait_mutex == WAIT_OBJECT_0)
@@ -602,7 +639,7 @@ read_messeng:
         
     if (init_server->type_data == "discrete")
     {
-        buf_mem = buf_discrete_out;
+        buf_mem = buf_discrete_out+init_server->offset * sizeof(int);
         buf_write_out = buf_write + 12;
         result_wait_mutex = WaitForSingleObject(mutex_discrete_out, 4);
         if (result_wait_mutex == WAIT_OBJECT_0)
@@ -628,14 +665,15 @@ read_messeng:
         {
             std::cout << "ERROR_SEND" << std::endl;
             std::cout << last_error << std::endl;
+            if (last_error == 10035 || last_error == 10038 || last_error == 10050 || last_error == 10051 || last_error == 10052 ||
+                last_error == 10053 || last_error == 10054 || last_error == 10057 || last_error == 10058 || last_error == 10053 ||
+                last_error == 10061 || last_error == 10064 || last_error == 10065 || last_error == 10101)
+            {
+                closesocket(connect_client);
+                goto next_client_simintech;
+            }
         }
-        if (last_error == 10035 || last_error == 10038 || last_error == 10050 || last_error == 10051 || last_error == 10052 ||
-            last_error == 10053 || last_error == 10054 || last_error == 10057 || last_error == 10058 || last_error == 10053 ||
-            last_error == 10061 || last_error == 10064 || last_error == 10065 || last_error == 10101)
-        {
-            closesocket(connect_client);
-            goto next_client_simintech;
-        }
+        
     } 
     result_wait_send = WSAWaitForMultipleEvents(1, &send_overlapped.hEvent, TRUE, INFINITE, TRUE);
     if (result_wait_send == WSA_WAIT_FAILED)
@@ -754,7 +792,7 @@ BOOL WINAPI close_prog(DWORD fdwCtrlType)
 
 std::string get_time_local()
 {
-    char t[13];
+    char t[14];
     SYSTEMTIME time;
     GetLocalTime(&time);
     sprintf(t, "\t%02d:%02d:%02d.%03d", time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
@@ -791,7 +829,7 @@ void form_string(const char* str, int f_time, unsigned long value)
     if (f_time != 0)
     {
 
-        char time[13];
+        char time[14];
         SYSTEMTIME tic;
         GetLocalTime(&tic);
         sprintf(time, "\t%02d:%02d:%02d.%03d", tic.wHour, tic.wMinute, tic.wSecond, tic.wMilliseconds);
@@ -860,6 +898,8 @@ int init_struct_config_device(std::string str)
     config_device device;
     std::string helpstr1;
     std::string helpstr2;
+    device.id_device = count_adapt;
+    count_adapt++;
     int pos[2] = { 0, 0 };
 
     pos[0] = str.find(' ', 0);
