@@ -166,8 +166,8 @@ int main()
 	mutex_analog_in = CreateMutex(NULL, FALSE, muxanalogin);
 	sharmemory_emt_discrete_in = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, Sharmem_InDiscrete.size * 4, Sharmem_InDiscrete.name.c_str());
 	sharmemory_emt_analog_in = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, Sharmem_InAnalog.size * 4, Sharmem_InAnalog.name.c_str());
-	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InDiscrete.size * (int)4);
-	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InAnalog.size * (int)4);
+	buf_discrete_in = (char*)MapViewOfFile(sharmemory_emt_discrete_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InDiscrete.size * 4);
+	buf_analog_in = (char*)MapViewOfFile(sharmemory_emt_analog_in, FILE_MAP_ALL_ACCESS, 0, 0, Sharmem_InAnalog.size * 4);
 
 	/// --- инициализацая потоков SERVER CLIENT --- ///
    
@@ -222,9 +222,9 @@ void thread_client(LPVOID config_client)
     wsasend.buf = buf_request;
     wsasend.len = 16;
 
-    /// --- иниц пакета запроса --- ///
+    /// --- иниц пакета приема --- ///
     int num_data = init_client->num_data;
-    char* buf_read = new char[num_data * 8];
+    char* buf_read = new char[num_data * 8+12];
     WSABUF wsarecv;
     DWORD count_recv = 0;
     DWORD flag_recv = 0;
@@ -233,7 +233,9 @@ void thread_client(LPVOID config_client)
     SecureZeroMemory((PVOID)&recv_overlapped, sizeof(WSAOVERLAPPED));
     recv_overlapped.hEvent = WSACreateEvent();
     wsarecv.buf = buf_read;
-    wsarecv.len = num_data*8;
+    wsarecv.len = num_data*8+12;
+    DWORD count_get_byte = 0;
+    int num_from;
     
     double time;
     int result;
@@ -283,7 +285,7 @@ void thread_client(LPVOID config_client)
     buf_request[0] = 2;
     QueryPerformanceCounter(&time_last_messeng);
     ///  --- отправка запроса --- ///
-    next:
+next:
     wwait:
     Sleep(1);
     QueryPerformanceCounter(&time_river_read);
@@ -331,61 +333,79 @@ void thread_client(LPVOID config_client)
     result_wait_send = WSAWaitForMultipleEvents(1, &send_overlapped.hEvent, TRUE, INFINITE, TRUE);
     if (result_wait_send == WSA_WAIT_FAILED)
     {
+        last_error = WSAGetLastError();
         std::cout << "ERROR_WAIT_EVENT" << std::endl;
-        std::cout << WSAGetLastError() << std::endl;
+        std::cout << last_error << std::endl;
         closesocket(sock_client);
         goto repeat_connect;
     }
+    WSAResetEvent(send_overlapped.hEvent);
+
     WSAGetOverlappedResult(sock_client, &send_overlapped, &count_send, FALSE, &flag_send);
     if (count_send != 16)
     {
+        last_error = WSAGetLastError();
         std::cout << "ERROR_REQEST" << std::endl;
-        std::cout << WSAGetLastError() << std::endl;
+        std::cout << last_error << std::endl;
         closesocket(sock_client);
         goto repeat_connect;
     }
 
     /// --- прием сообщения --- /// 
 
-    if (WSARecv(sock_client, &wsarecv, 1, &count_recv, &flag_recv, &recv_overlapped, NULL) == SOCKET_ERROR)
-    {
+    count_recv = 0;
+    num_data_from_server = 0;
+next_recv:
+    wsarecv.buf = buf_read + count_recv;
+    wsarecv.len = num_data*8+12-count_recv;
+    count_get_byte = 0;
+    flag_recv = 0;
 
+    if (WSARecv(sock_client, &wsarecv, 1, &count_get_byte, &flag_recv, &recv_overlapped, NULL) == SOCKET_ERROR)
+    {
+        last_error = WSAGetLastError();
+        if (last_error != WSA_IO_PENDING)
+        {
+            std::cout << "ERROR_RECV" << std::endl;
+            std::cout << last_error << std::endl;
+            closesocket(sock_client);
+            goto repeat_connect;
+        }
     }
 
-
-    goto next;
-
-    /// --- прием данных --- ///
-
-    
-
-
-
-    count_buf = 0;
-    /// --- чтение первых 12-байт (команды)--- ///
-    do 
+    result_wait_recv = WSAWaitForMultipleEvents(1, &recv_overlapped.hEvent, TRUE, INFINITE, TRUE);
+    if (result_wait_recv == WSA_WAIT_FAILED)
     {
-        count_buf += recv(sock_client, buf_read + count_buf, 12 - count_buf, NULL);
-    } while (count_buf < 12 && count_buf != SOCKET_ERROR);
+        std::cout << "ERROR_WAIT_EVENT" << std::endl;
+        std::cout << WSAGetLastError() << std::endl;
+        closesocket(sock_client);
+        goto repeat_connect;
+    }
+    WSAResetEvent(recv_overlapped.hEvent);
 
-    /// ---  чтение кол-ва читаемых данных --- ///
-    num_data_from_server = *((int*)buf_read);                                           
-    num_data_from_server = num_data_from_server * sizeof(double);
-
-    //// ---- читаем данные и пишим их в буфер обмена --- ///
-    count_buf = 0;
-    do
+    if (!WSAGetOverlappedResult(sock_client, &recv_overlapped, &count_get_byte, FALSE, &flag_recv))
     {
-        count_buf += recv(sock_client, buf_read + count_buf, num_data_from_server - count_buf, NULL);
-    } while (count_buf < num_data_from_server && count_buf != SOCKET_ERROR);
+        last_error = WSAGetLastError();
+        std::cout << "ERROR_READ_SERVER ID - " << init_client->id_device << std::endl;
+        std::cout << last_error << std::endl;
+        closesocket(sock_client);
+        goto repeat_connect;
+    }
+    count_recv += count_get_byte;
+    if (count_recv >= 4 && num_data_from_server == 0)
+    {
+        num_data_from_server = *((int*)buf_read);
+        num_data_from_server = num_data_from_server * sizeof(double);
+    }
+    if (count_recv < num_data_from_server + 12) goto next_recv;
 
     if (init_client->type_data == "discrete")
     {
         result_wait_mutex = WaitForSingleObject(mutex_discrete_in, 4);
         if (result_wait_mutex == WAIT_OBJECT_0)
         {
-            buf_mem = buf_discrete_in;
-            buf_cl = buf_read;
+            buf_mem = buf_discrete_in+init_client->offset*sizeof(int);
+            buf_cl = buf_read+12;
             for (int i = 0; i < num_data; i++)
             {
                 data_int = (int)(*((double*)buf_cl));
@@ -404,8 +424,8 @@ void thread_client(LPVOID config_client)
         result_wait_mutex = WaitForSingleObject(mutex_analog_in, 4);
         if (result_wait_mutex == WAIT_OBJECT_0)
         {
-            buf_mem = buf_analog_in;
-            buf_cl = buf_read;
+            buf_mem = buf_analog_in + init_client->offset*sizeof(float);
+            buf_cl = buf_read+12;
             for (int i = 0; i < num_data; i++)
             {
                 data_float = (float)(*((double*)buf_cl));
@@ -544,7 +564,7 @@ next:
         std::cout << "LIMIT_TIME_MESSENG_WRITING_EXCEEDED ID - " << init_server->id_device << "\t" << time << get_time_local() << std::endl;
     }
     count_read = 0;
-read_messeng:
+    read_messeng:
     wsabuf_read.buf = buf_read+count_read;
     wsabuf_read.len = 16-count_read;
     count_get_byte = 0;

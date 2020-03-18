@@ -1,11 +1,18 @@
 ﻿  logger.cpp
 D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\logger.cpp(313,70): warning C4267: аргумент: преобразование из "size_t" в "DWORD"; возможна потеря данных
   test_EMT_RAEK_1.0.cpp
-D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(350,25): error C2059: синтаксическая ошибка: )
-D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(861,30): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
-D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(862,39): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
-D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(903,30): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
-D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(906,35): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
-D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(912,35): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
-D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(918,35): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
-D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(924,35): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(400,20): warning C4018: <: несоответствие типов со знаком и без знака
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(241,9): warning C4101: result: неиспользованная локальная переменная
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(238,9): warning C4101: num_from: неиспользованная локальная переменная
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(883,30): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(884,39): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(925,30): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(928,35): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(934,35): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(940,35): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(946,35): warning C4267: =: преобразование из "size_t" в "int"; возможна потеря данных
+  Создание кода
+  Previous IPDB not found, fall back to full compilation.
+  All 253 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Создание кода завершено
+  test_EMT_RAEK_1.0.vcxproj -> D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\x64\Release\test_EMT_RAEK_1.0.exe
