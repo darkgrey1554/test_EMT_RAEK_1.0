@@ -1,7 +1,13 @@
 ﻿  logger.cpp
   test_EMT_RAEK_1.0.cpp
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(257,16): warning C4102: end_program: неиспользованная метка
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(511,24): warning C4018: <: несоответствие типов со знаком и без знака
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(558,22): warning C4834: отмена возвращаемого значения функции с атрибутом "nodiscard"
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(307,9): warning C4101: result: неиспользованная локальная переменная
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(304,9): warning C4101: num_from: неиспользованная локальная переменная
+D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\test_EMT_RAEK_1.0.cpp(887,22): warning C4834: отмена возвращаемого значения функции с атрибутом "nodiscard"
   Создание кода
   Previous IPDB not found, fall back to full compilation.
-  All 253 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  All 363 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   Создание кода завершено
   test_EMT_RAEK_1.0.vcxproj -> D:\Program Files (x86)\Microsoft Visual Studio\project\test_EMT_RAEK_1.0\Release\test_EMT_RAEK_1.0.exe
